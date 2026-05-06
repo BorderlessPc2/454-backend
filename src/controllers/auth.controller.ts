@@ -24,6 +24,11 @@ export class AuthController {
       }
 
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        console.error("[login] Prisma KnownRequestError:", {
+          code: error.code,
+          meta: error.meta,
+          message: error.message,
+        });
         res.status(500).json({
           error: "Erro ao validar credenciais. Tente novamente.",
         });

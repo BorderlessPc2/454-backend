@@ -17,5 +17,5 @@ services:
       - key: JWT_SECRET
         sync: false
       - key: CORS_ORIGIN
-        value: https://seu-frontend.onrender.com
+        value: https://seu-site.netlify.app,http://localhost:5173
     autoDeploy: true

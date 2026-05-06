@@ -13,13 +13,11 @@ fi
 echo "[startup] ✅ DATABASE_URL encontrada"
 echo "[startup] Executando Prisma migrate deploy..."
 
-if npx prisma migrate deploy; then
-  echo "[startup] ✅ Migrations aplicadas com sucesso."
-else
-  MIGRATE_EXIT=$?
-  echo "[startup] ⚠️  Falha ao aplicar migrations (exit code: $MIGRATE_EXIT)"
-  echo "[startup] Continuando com startup mesmo assim..."
+if ! npx prisma migrate deploy; then
+  echo "[startup] ❌ prisma migrate deploy falhou — abortando (corrija DATABASE_URL ou migrations)."
+  exit 1
 fi
+echo "[startup] ✅ Migrations aplicadas com sucesso."
 
 echo "[startup] ✅ Iniciando servidor Node na porta ${PORT:-3000}..."
 exec node dist/server.js

@@ -10,19 +10,36 @@ import checklistsRouter from "./routes/checklists.routes.js";
 import setoresRouter from "./routes/setores.routes.js";
 import ramosRouter from "./routes/ramos.routes.js";
 import configuracoesRouter from "./routes/configuracoes.routes.js";
+import { prisma } from "./lib/prisma.js";
 
 const app = express();
 
-const corsOrigin = (
-  process.env["CORS_ORIGIN"] ?? "http://localhost:5173"
-).replace(/\/$/, "");
+const corsOriginConfig = process.env["CORS_ORIGIN"] ?? "http://localhost:5173";
+const allowedOrigins = corsOriginConfig
+  .split(",")
+  .map((origin) => origin.trim().replace(/\/$/, ""))
+  .filter(Boolean);
 
-console.log(`[CORS] Configurado para: ${corsOrigin}`);
+console.log(`[CORS] Configurado para: ${allowedOrigins.join(", ")}`);
 console.log(`[CORS] NODE_ENV: ${process.env["NODE_ENV"] ?? "not-set"}`);
 
 app.use(
   cors({
-    origin: corsOrigin,
+    origin: (origin, callback) => {
+      // Permite chamadas server-to-server e health checks sem header Origin
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      const normalizedOrigin = origin.replace(/\/$/, "");
+      if (allowedOrigins.includes(normalizedOrigin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`Origin ${origin} não permitida por CORS`));
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -48,6 +65,16 @@ app.use(
 );
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
+
+app.get("/health/db", async (_req, res) => {
+	try {
+		await prisma.$queryRaw`SELECT 1`;
+		res.json({ ok: true, database: true });
+	} catch (error) {
+		console.error("[health/db]", error);
+		res.status(503).json({ ok: false, database: false });
+	}
+});
 
 app.use("/auth", authRouter);
 app.use("/users", usersRouter);
