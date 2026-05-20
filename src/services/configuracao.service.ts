@@ -1,4 +1,18 @@
 import { Prisma, PrismaClient } from "@prisma/client";
+import { writeSystemLogoFile } from "../lib/logo-upload.js";
+
+export type ConfiguracaoPatchInput = {
+  dataInicio?: Date;
+  dataFim?: Date;
+  textoRodapeRelatorio?: string | null;
+  logoUrl?: string | null;
+};
+
+export type LogoUploadFile = {
+  buffer: Buffer;
+  originalname: string;
+  mimetype: string;
+};
 
 export class ConfiguracaoService {
   constructor(private prisma: PrismaClient) {}
@@ -18,11 +32,86 @@ export class ConfiguracaoService {
     }
   }
 
-  async upsert(dataInicio: Date, dataFim: Date) {
-    return this.prisma.configuracao.upsert({
-      where: { id: 1 },
-      create: { id: 1, dataInicio, dataFim },
-      update: { dataInicio, dataFim },
+  private defaultHorarioDoDia(): { dataInicio: Date; dataFim: Date } {
+    const dataInicio = new Date();
+    dataInicio.setHours(8, 0, 0, 0);
+    const dataFim = new Date();
+    dataFim.setHours(18, 0, 0, 0);
+    return { dataInicio, dataFim };
+  }
+
+  /**
+   * Atualiza horário de login, rodapé do relatório e/ou logo.
+   * Exige pelo menos um bloco no body do PUT.
+   */
+  async patch(opts: ConfiguracaoPatchInput) {
+    const hasHorario =
+      opts.dataInicio !== undefined && opts.dataFim !== undefined;
+    const hasRodape = opts.textoRodapeRelatorio !== undefined;
+    const hasLogo = opts.logoUrl !== undefined;
+
+    if (!hasHorario && !hasRodape && !hasLogo) {
+      throw new Error(
+        "Informe dataInicio e dataFim (juntos), textoRodapeRelatorio e/ou logoUrl",
+      );
+    }
+
+    if (
+      (opts.dataInicio !== undefined) !== (opts.dataFim !== undefined)
+    ) {
+      throw new Error(
+        "Informe dataInicio e dataFim juntos para alterar o horário de login",
+      );
+    }
+
+    if (hasHorario && opts.dataFim! < opts.dataInicio!) {
+      throw new Error("dataFim deve ser posterior ou igual a dataInicio");
+    }
+
+    const existing = await this.prisma.configuracao.findFirst();
+
+    if (!existing) {
+      const horario = hasHorario
+        ? { dataInicio: opts.dataInicio!, dataFim: opts.dataFim! }
+        : this.defaultHorarioDoDia();
+      return this.prisma.configuracao.create({
+        data: {
+          id: 1,
+          dataInicio: horario.dataInicio,
+          dataFim: horario.dataFim,
+          ...(hasRodape
+            ? { textoRodapeRelatorio: opts.textoRodapeRelatorio }
+            : {}),
+          ...(hasLogo ? { logoUrl: opts.logoUrl } : {}),
+        },
+      });
+    }
+
+    return this.prisma.configuracao.update({
+      where: { id: existing.id },
+      data: {
+        ...(hasHorario
+          ? { dataInicio: opts.dataInicio!, dataFim: opts.dataFim! }
+          : {}),
+        ...(hasRodape
+          ? { textoRodapeRelatorio: opts.textoRodapeRelatorio }
+          : {}),
+        ...(hasLogo ? { logoUrl: opts.logoUrl } : {}),
+      },
     });
+  }
+
+  async saveLogoFile(file: LogoUploadFile) {
+    const { logoPath } = await writeSystemLogoFile(
+      file.buffer,
+      file.originalname,
+      file.mimetype,
+    );
+    return this.patch({ logoUrl: logoPath });
+  }
+
+  /** Mantido para uso legado ou scripts; preferir `patch`. */
+  async upsert(dataInicio: Date, dataFim: Date) {
+    return this.patch({ dataInicio, dataFim });
   }
 }

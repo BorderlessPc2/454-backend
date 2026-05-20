@@ -222,11 +222,15 @@ model RelatorioChecklist {
 }
 
 model Configuracao {
-  id         Int      @id @default(autoincrement())
-  dataInicio DateTime @map("data_inicio")
-  dataFim    DateTime @map("data_fim")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                      Int      @id @default(autoincrement())
+  dataInicio              DateTime @map("data_inicio")
+  dataFim                 DateTime @map("data_fim")
+  /** Texto do rodapé nas impressões/PDF do relatório (HTML ou texto; definido pelo ADMIN). */
+  textoRodapeRelatorio    String?  @map("texto_rodape_relatorio") @db.Text
+  /** Caminho público da logo (ex.: /uploads/system-logo.png). */
+  logoUrl                 String?  @map("logo_url") @db.VarChar(512)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 
   @@map("configuracoes")
 }

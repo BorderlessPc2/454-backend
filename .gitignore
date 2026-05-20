@@ -6,6 +6,8 @@ node_modules
 /generated/prisma
 
 # Build output
+uploads/
+
 dist/
 *.js
 *.js.map

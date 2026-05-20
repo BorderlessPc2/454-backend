@@ -409,15 +409,21 @@ components:
 
     ConfiguracaoUpsertRequest:
       type: object
-      required: [dataInicio, dataFim]
+      description: >
+        Envie dataInicio+dataFim (juntos), e/ou textoRodapeRelatorio.
+        Pode atualizar só o rodapé sem reenviar horário, e vice-versa.
       properties:
         dataInicio:
           type: string
           format: date-time
-          description: ISO 8601 — hora do dia é usada na janela de login
+          description: ISO 8601 — hora do dia é usada na janela de login (par obrigatório com dataFim)
         dataFim:
           type: string
           format: date-time
+        textoRodapeRelatorio:
+          type: string
+          nullable: true
+          description: Texto/HTML do rodapé usado na impressão ou PDF do relatório (aba Administração).
 
     ConfiguracaoRecord:
       type: object
@@ -425,6 +431,9 @@ components:
         id: { type: integer }
         dataInicio: { type: string, format: date-time }
         dataFim: { type: string, format: date-time }
+        textoRodapeRelatorio:
+          type: string
+          nullable: true
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
@@ -1227,8 +1236,8 @@ paths:
   /configuracoes:
     get:
       tags: [Configurações]
-      summary: Obter configuração (janela de horário de login)
-      description: Retorna um objeto ou `null` se ainda não existir registro.
+      summary: Obter configuração (horário de login e texto do rodapé do relatório)
+      description: Retorna um objeto ou `null` se ainda não existir registro. Inclui `textoRodapeRelatorio` quando preenchido pelo ADMIN.
       security:
         - bearerAuth: []
       responses:
@@ -1243,7 +1252,9 @@ paths:
     put:
       tags: [Configurações]
       summary: Criar/atualizar configuração
-      description: Somente ADMIN. Afeta o middleware de horário do login.
+      description: >
+        Somente ADMIN. Pode enviar só `dataInicio`+`dataFim`, só `textoRodapeRelatorio`,
+        ou ambos. O horário de login continua validado em `POST /auth/login`.
       security:
         - bearerAuth: []
       requestBody:
