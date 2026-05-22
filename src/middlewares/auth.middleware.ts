@@ -1,8 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt, { type JwtPayload } from "jsonwebtoken";
-
-const JWT_SECRET =
-  process.env["JWT_SECRET"] ?? "your-secret-key-change-in-production";
+import { getJwtSecret } from "../lib/jwt-secret.js";
 
 export type AuthUser = {
   id: number;
@@ -44,7 +42,7 @@ export const authMiddleware = (
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+    const decoded = jwt.verify(token, getJwtSecret()) as JwtPayload;
 
     if (
       typeof decoded !== "object" ||

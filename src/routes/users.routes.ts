@@ -1,12 +1,11 @@
 import { Router } from "express";
 import { AuthController } from "../controllers/auth.controller.js";
-import { authMiddleware } from "../middlewares/auth.middleware.js";
+import { protectedMiddleware } from "../middlewares/protected.middleware.js";
 import { roleMiddleware } from "../middlewares/role.middleware.js";
 
 const router = Router();
 
-// ✅ Rota acessível por qualquer role autenticado
-router.use(authMiddleware);
+router.use(...protectedMiddleware);
 router.get("/tecnico", AuthController.getUsersTecnico);
 
 // 🔒 Rotas exclusivas para ADMIN

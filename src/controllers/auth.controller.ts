@@ -3,13 +3,13 @@ import { Prisma } from "@prisma/client";
 import { AuthService } from "../services/auth.service.js";
 import { prisma } from "../lib/prisma.js";
 import type { LoginDTO, CreateUserDTO, UpdateUserDTO } from "../types/dtos.js";
+import type { AuthRequest } from "../middlewares/auth.middleware.js";
 
 const authService = new AuthService(prisma);
 
 export class AuthController {
   static async login(req: Request, res: Response): Promise<void> {
     try {
-      console.log("Dados recebidos no login:", req.body);
       const data: LoginDTO = req.body;
       const result = await authService.login(data);
       res.json(result);
@@ -52,6 +52,32 @@ export class AuthController {
       res.status(401).json({
         error: "Não foi possível fazer login. Tente novamente.",
       });
+    }
+  }
+
+  static async me(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({ error: "Usuário não autenticado" });
+        return;
+      }
+
+      const user = await authService.getUserById(req.user.id);
+      if (!user || user.ativo === false) {
+        res.status(401).json({ error: "Sessão inválida ou usuário inativo" });
+        return;
+      }
+
+      res.json({
+        id: user.id,
+        username: user.username,
+        nome: user.nome,
+        role: user.role,
+        clienteId: user.clienteId,
+        unidadeId: user.unidadeId,
+      });
+    } catch {
+      res.status(500).json({ error: "Erro ao validar sessão" });
     }
   }
 

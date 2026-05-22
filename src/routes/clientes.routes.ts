@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { ClienteController } from "../controllers/cliente.controller.js";
-import { authMiddleware } from "../middlewares/auth.middleware.js";
+import { protectedMiddleware } from "../middlewares/protected.middleware.js";
 
 const router = Router();
 
-router.use(authMiddleware);
+router.use(...protectedMiddleware);
 
 router.post("/", ClienteController.create);
 router.get("/", ClienteController.findAll);

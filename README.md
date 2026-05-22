@@ -27,14 +27,22 @@ src/
 
 ## Documentação da API (Swagger)
 
-Com a API rodando:
+Com a API rodando (**ambiente diferente de `NODE_ENV=production`**, ou com **`EXPOSE_API_DOCS=1`** em produção):
 
 - **UI:** [http://localhost:3000/api-docs](http://localhost:3000/api-docs) (ajuste a porta se `PORT` for outra)
 - **JSON:** [http://localhost:3000/openapi.json](http://localhost:3000/openapi.json)
 
+Em produção (`NODE_ENV=production`) as rotas do Swagger ficam **ocultas** por omissão; defina **`EXPOSE_API_DOCS=1`** no Render se precisar da UI em ambiente público (avaliando o risco de exposição).
+
 Na interface, use **Authorize** e informe `Bearer <token>` obtido em `POST /auth/login`.
 
 A especificação fonte está em `src/docs/openapi.yaml` (copiada para `dist/docs/` no `npm run build`).
+
+## Operação em produção (Render / Postgres / regressão)
+
+- **[docs/OPERACOES-E-PRODUCAO.md](./docs/OPERACOES-E-PRODUCAO.md)** — logs, **`GET /health`**, **`GET /health/db`**, **`npm run db:migrate-status`**, uploads/logo, **`JWT_EXPIRES_IN`**, Swagger em prod (**`EXPOSE_API_DOCS`**), **`OPS_REQUEST_LOG=1`**.
+- **[docs/backup-e-dr.md](./docs/backup-e-dr.md)** — `pg_dump` e conceito de restauração.
+- **[docs/REGRESSAO-E2E-CHECKLIST.md](./docs/REGRESSAO-E2E-CHECKLIST.md)** — checklist manual pós-deploy.
 
 ## Pré-requisitos
 
@@ -66,6 +74,7 @@ Copy-Item .env.example .env
 ```env
 DATABASE_URL="postgresql://linq:linqq608U@localhost:5432/polls?schema=public"
 JWT_SECRET="sua-chave-secreta-aqui"
+JWT_EXPIRES_IN="8h"
 PORT=3000
 ```
 
@@ -189,9 +198,21 @@ Para configurar horário de login permitido:
 }
 ```
 
+## Segurança (resumo do backend)
+
+| Item | Comportamento |
+|------|----------------|
+| **`JWT_SECRET`** | Produção (**`NODE_ENV=production`**): obrigatório, **≥32 caracteres**, não pode ser valor de exemplo. Dev: permite placeholder com **aviso** no log. Implementação: `src/lib/jwt-secret.ts`. |
+| **Login brute force** | Rate limit aplicado apenas em **`POST /auth/login`** (`express-rate-limit`); ajustável com **`LOGIN_RATE_LIMIT_MAX`** / **`LOGIN_RATE_LIMIT_WINDOW_MINUTES`**. |
+| **`trust proxy`** | Ativo quando `NODE_ENV=production` ou **`TRUST_PROXY=1`** (IP correto no Render para o rate limit). |
+| **`helmet`** | Headers HTTP endurecidos; **CSP** desativada para compatibilidade com SPA/Swagger. |
+| **`express.json`** | Limite **512 KB** ao corpo JSON. |
+
+Encerramento gracioso: **`SIGTERM` / SIGINT`** desligam HTTP e fazem **`prisma.$disconnect()`** antes de sair (`src/server.ts`).
+
 ## Autenticação
 
-Todas as rotas (exceto `/auth/login`) exigem token JWT no header:
+Todas as rotas (exceto `POST /auth/login`, health checks e documentação Swagger quando exposta) exigem token JWT:
 
 ```
 Authorization: Bearer <token>
@@ -229,6 +250,8 @@ Após rodar as migrations, você pode criar um usuário admin diretamente no ban
 - `npm run build` - Build para produção
 - `npm run prisma:generate` - Gerar Prisma Client
 - `npm run prisma:migrate` - Executar migrations
+- **`npm run db:migrate-status`** - Estado das migrations contra o Postgres corrente
+- **`npm run verify-login`** — diagnóstico local de senha/hash (`-- usuario senha`; ver `scripts/verify-login-credentials.mjs`)
 - `npx prisma studio` - Interface visual do banco
 
 ## Licença

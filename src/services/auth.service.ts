@@ -1,10 +1,13 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
+import jwt, { type SignOptions } from "jsonwebtoken";
 import type { LoginDTO, CreateUserDTO, UpdateUserDTO } from "../types/dtos.js";
-
-const JWT_SECRET =
-  process.env["JWT_SECRET"] ?? "your-secret-key-change-in-production";
+import { getJwtSecret } from "../lib/jwt-secret.js";
+/** Ex.: `8h`, `12h`, `1d` — ver documentação jsonwebtoken. */
+const JWT_EXPIRES_IN_RAW = (
+  process.env["JWT_EXPIRES_IN"] ?? "8h"
+).trim();
+const JWT_EXPIRES_IN = JWT_EXPIRES_IN_RAW !== "" ? JWT_EXPIRES_IN_RAW : "8h";
 const SALT_ROUNDS = 10;
 
 /** Latência mínima na falha de login para reduzir enumeração por tempo. */
@@ -132,6 +135,9 @@ export class AuthService {
       throw new Error("Credenciais inválidas");
     }
 
+    const signOpts = {
+      expiresIn: JWT_EXPIRES_IN,
+    } as SignOptions;
     const token = jwt.sign(
       {
         id: user.id,
@@ -140,8 +146,8 @@ export class AuthService {
         clienteId: user.clienteId,
         unidadeId: user.unidadeId,
       },
-      JWT_SECRET,
-      { expiresIn: "8h" },
+      getJwtSecret(),
+      signOpts,
     );
 
     return {

@@ -1,23 +1,31 @@
 import type { Request, Response } from "express";
 import { ConfiguracaoService } from "../services/configuracao.service.js";
 import { prisma } from "../lib/prisma.js";
+import { resolvePublicLogoUrl } from "../lib/public-logo-url.js";
 
 const configuracaoService = new ConfiguracaoService(prisma);
 
-function resolvePublicLogoUrl(logoUrl: string | null | undefined): string | null {
-  if (!logoUrl?.trim()) {
-    return null;
-  }
-  if (/^https?:\/\//i.test(logoUrl)) {
-    return logoUrl;
-  }
-  const base =
-    process.env["PUBLIC_API_URL"]?.replace(/\/$/, "") ??
-    `http://localhost:${process.env["PORT"] ?? "3000"}`;
-  return `${base}${logoUrl.startsWith("/") ? logoUrl : `/${logoUrl}`}`;
-}
-
 export class ConfiguracaoController {
+  static async findPdfSettings(_req: Request, res: Response): Promise<void> {
+    try {
+      const config = await configuracaoService.get();
+      if (!config) {
+        res.json({
+          logoUrl: null,
+          textoRodapeRelatorio: null,
+        });
+        return;
+      }
+
+      res.json({
+        logoUrl: resolvePublicLogoUrl(config.logoUrl),
+        textoRodapeRelatorio: config.textoRodapeRelatorio ?? null,
+      });
+    } catch {
+      res.status(500).json({ error: "Erro ao buscar configurações do PDF" });
+    }
+  }
+
   static async findAll(_req: Request, res: Response): Promise<void> {
     try {
       const config = await configuracaoService.get();

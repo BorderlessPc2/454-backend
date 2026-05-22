@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { RelatorioController } from "../controllers/relatorio.controller.js";
-import { authMiddleware } from "../middlewares/auth.middleware.js";
+import { protectedMiddleware } from "../middlewares/protected.middleware.js";
 
 const router = Router();
 
-router.use(authMiddleware);
+router.use(...protectedMiddleware);
 
 router.post("/", RelatorioController.create);
 router.get("/", RelatorioController.findAll);

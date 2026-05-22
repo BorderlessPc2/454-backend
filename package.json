@@ -13,6 +13,8 @@
     "prisma:seed": "tsx prisma/seed.ts",
     "prisma:seed:production": "tsx prisma/seed-production.ts",
     "postinstall": "prisma generate",
+    "verify-login": "node scripts/verify-login-credentials.mjs",
+    "db:migrate-status": "prisma migrate status",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -27,8 +29,10 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.22",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^1.4.12",
     "@types/node": "^25.2.3",
     "@types/pg": "^8.16.0",
+    "@types/sanitize-html": "^2.16.1",
     "@types/swagger-ui-express": "^4.1.8",
     "prisma": "^6.19.0",
     "tsx": "^4.21.0",
@@ -41,9 +45,12 @@
     "cors": "^2.8.6",
     "dotenv": "^17.2.4",
     "express": "^4.22.1",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.1.1",
     "pg": "^8.18.0",
+    "sanitize-html": "^2.17.4",
     "swagger-ui-express": "^5.0.1",
     "yaml": "^2.8.3"
   }

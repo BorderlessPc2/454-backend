@@ -1,6 +1,7 @@
 import express, { type Request, type Response, type NextFunction } from "express";
 import path from "path";
 import cors from "cors";
+import helmet from "helmet";
 import swaggerUi from "swagger-ui-express";
 import { loadOpenApiSpec } from "./docs/loadOpenApi.js";
 import authRouter from "./routes/auth.routes.js";
@@ -14,6 +15,7 @@ import configuracoesRouter from "./routes/configuracoes.routes.js";
 import { prisma } from "./lib/prisma.js";
 
 const app = express();
+const isProduction = process.env["NODE_ENV"] === "production";
 
 const corsOriginConfig = process.env["CORS_ORIGIN"] ?? "http://localhost:5173";
 const allowedOrigins = corsOriginConfig
@@ -47,35 +49,81 @@ app.use(
   }),
 );
 
-app.use(express.json());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  }),
+);
 
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+app.use(express.json({ limit: "1mb" }));
+
+if (process.env["OPS_REQUEST_LOG"] === "1") {
+	app.use((req: Request, res: Response, next: NextFunction) => {
+		const started = Date.now();
+		res.on("finish", () => {
+			try {
+				console.log(
+					JSON.stringify({
+						ts: new Date().toISOString(),
+						level: "http",
+						method: req.method,
+						path: req.originalUrl.split("?")[0] ?? "",
+						statusCode: res.statusCode,
+						durationMs: Date.now() - started,
+					}),
+				);
+			} catch {
+				/* ignore logging errors */
+			}
+		});
+		next();
+	});
+}
+
+app.use("/uploads", (req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  next();
+}, express.static(path.join(process.cwd(), "uploads")));
 
 const openApiDocument = loadOpenApiSpec();
 
-app.get("/openapi.json", (_req, res) => {
-	res.setHeader("Content-Type", "application/json");
-	res.json(openApiDocument);
+if (!isProduction) {
+  app.get("/openapi.json", (_req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    res.json(openApiDocument);
+  });
+
+  app.use(
+    "/api-docs",
+    swaggerUi.serve,
+    swaggerUi.setup(openApiDocument, {
+      explorer: true,
+      customCss: ".swagger-ui .topbar { display: none }",
+    }),
+  );
+}
+
+app.get("/health", (_req: Request, res: Response) => {
+	res.json({
+		ok: true,
+		service: "454-backend",
+		uptimeSeconds: Math.floor(process.uptime()),
+		timestamp: new Date().toISOString(),
+		nodeEnv: process.env["NODE_ENV"] ?? "development",
+	});
 });
 
-app.use(
-	"/api-docs",
-	swaggerUi.serve,
-	swaggerUi.setup(openApiDocument, {
-		explorer: true,
-		customCss: ".swagger-ui .topbar { display: none }",
-	}),
-);
-
-app.get("/health", (_req, res) => res.json({ ok: true }));
-
-app.get("/health/db", async (_req, res) => {
+app.get("/health/db", async (_req: Request, res: Response) => {
 	try {
 		await prisma.$queryRaw`SELECT 1`;
-		res.json({ ok: true, database: true });
+		res.json({ ok: true, database: true, timestamp: new Date().toISOString() });
 	} catch (error) {
 		console.error("[health/db]", error);
-		res.status(503).json({ ok: false, database: false });
+		res.status(503).json({
+			ok: false,
+			database: false,
+			timestamp: new Date().toISOString(),
+		});
 	}
 });
 

@@ -1,4 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
+import { isWithinConfiguredHorario } from "../lib/horario-utils.js";
+
+export const HORARIO_LOGIN_DENIED_MESSAGE =
+  "Login permitido apenas dentro do horario configurado";
 
 export const horarioMiddleware = async (
   req: Request,
@@ -11,23 +15,12 @@ export const horarioMiddleware = async (
     return;
   }
 
-  const now = new Date();
-  const inicio = new Date(now);
-  inicio.setHours(
-    config.dataInicio.getHours(),
-    config.dataInicio.getMinutes(),
-    0,
-    0,
-  );
-  const fim = new Date(now);
-  fim.setHours(config.dataFim.getHours(), config.dataFim.getMinutes(), 0, 0);
-
-  if (now < inicio || now > fim) {
-    res.status(403).json({
-      error: "Login permitido apenas dentro do horario configurado",
-    });
+  if (isWithinConfiguredHorario(config.dataInicio, config.dataFim)) {
+    next();
     return;
   }
 
-  next();
+  res.status(403).json({
+    error: HORARIO_LOGIN_DENIED_MESSAGE,
+  });
 };

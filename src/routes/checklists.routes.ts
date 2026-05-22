@@ -1,11 +1,11 @@
 import { Router } from "express";
 import { ChecklistController } from "../controllers/checklist.controller.js";
-import { authMiddleware } from "../middlewares/auth.middleware.js";
+import { protectedMiddleware } from "../middlewares/protected.middleware.js";
 import { roleMiddleware } from "../middlewares/role.middleware.js";
 
 const router = Router();
 
-router.use(authMiddleware);
+router.use(...protectedMiddleware);
 
 // GETs liberados para qualquer role autenticado
 router.get("/", ChecklistController.findAll);

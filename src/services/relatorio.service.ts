@@ -4,6 +4,7 @@ import type {
   UpdateRelatorioDTO,
   RelatorioFilters,
 } from "../types/dtos.js";
+import { sanitizeRichTextHtml } from "../lib/sanitize-rich-text.js";
 
 // Helper: Combina data e hora para criar um DateTime válido
 function combinarDataHora(data: string, hora: string): Date {
@@ -206,7 +207,7 @@ export class RelatorioService {
       }
 
       if (data.observacoes !== undefined) {
-        relatorioData.observacoes = data.observacoes;
+        relatorioData.observacoes = sanitizeRichTextHtml(data.observacoes);
       }
 
       const relatorio = await tx.relatorio.create({
@@ -503,7 +504,7 @@ export class RelatorioService {
       }
 
       if (data.observacoes !== undefined) {
-        updateData.observacoes = data.observacoes;
+        updateData.observacoes = sanitizeRichTextHtml(data.observacoes);
       }
 
       if (data.impresso !== undefined) {

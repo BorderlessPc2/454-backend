@@ -16,6 +16,12 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+      - key: JWT_EXPIRES_IN
+        sync: false
+      - key: OPS_REQUEST_LOG
+        sync: false
+      - key: EXPOSE_API_DOCS
+        sync: false
       - key: CORS_ORIGIN
         value: https://seu-site.netlify.app,http://localhost:5173
     autoDeploy: true

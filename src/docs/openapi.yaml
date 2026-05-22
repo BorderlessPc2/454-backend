@@ -30,7 +30,9 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: Token JWT retornado pelo login (validade ~8h).
+      description: >
+        Token JWT retornado pelo login. Validade configurável pela env `JWT_EXPIRES_IN`
+        no servidor (padrão `8h` se não definido).
 
   schemas:
     ErrorMessage:
