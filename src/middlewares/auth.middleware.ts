@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt, { type JwtPayload } from "jsonwebtoken";
 import { getJwtSecret } from "../lib/jwt-secret.js";
+import { AUTH_COOKIE_NAME } from "../lib/auth-cookie.js";
 
 export type AuthUser = {
   id: number;
@@ -19,25 +20,13 @@ export const authMiddleware = (
   res: Response,
   next: NextFunction,
 ): void => {
-  const authHeader = req.headers.authorization;
+  const cookies = (req as Request & { cookies?: Record<string, unknown> })
+    .cookies;
+  const tokenRaw = cookies?.[AUTH_COOKIE_NAME];
+  const token = typeof tokenRaw === "string" ? tokenRaw : "";
 
-  if (!authHeader) {
+  if (!token) {
     res.status(401).json({ error: "Token não fornecido" });
-    return;
-  }
-
-  const parts = authHeader.split(" ");
-
-  if (parts.length !== 2) {
-    res.status(401).json({ error: "Token mal formatado" });
-    return;
-  }
-
-  const scheme = parts[0];
-  const token = parts[1];
-
-  if (!scheme || !token || !/^Bearer$/i.test(scheme)) {
-    res.status(401).json({ error: "Token mal formatado" });
     return;
   }
 

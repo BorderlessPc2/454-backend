@@ -15,6 +15,12 @@ enum Role {
   TECNICO
 }
 
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   username  String   @unique
@@ -30,6 +36,7 @@ model User {
 
   cliente    Cliente?    @relation(fields: [clienteId], references: [id])
   relatorios Relatorio[]
+  auditLogs  AuditLog[]
 
   @@map("users")
 }
@@ -167,8 +174,24 @@ model Relatorio {
   setores    RelatorioSetor[]
   horarios   RelatorioHorario[]
   checklists RelatorioChecklist[]
+  auditLogs  AuditLog[]
 
   @@map("relatorios")
+}
+
+model AuditLog {
+  id         Int         @id @default(autoincrement())
+  relatorioId Int        @map("relatorio_id")
+  usuarioId  Int         @map("usuario_id")
+  acao       AuditAction
+  timestamp  DateTime    @default(now())
+
+  relatorio  Relatorio   @relation(fields: [relatorioId], references: [id], onDelete: Cascade)
+  usuario    User        @relation(fields: [usuarioId], references: [id])
+
+  @@index([relatorioId])
+  @@index([usuarioId])
+  @@map("audit_logs")
 }
 
 model RelatorioTecnico {

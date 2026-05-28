@@ -5,6 +5,7 @@ import type {
   RelatorioFilters,
 } from "../types/dtos.js";
 import { sanitizeRichTextHtml } from "../lib/sanitize-rich-text.js";
+import { auditLogger } from "../lib/audit-logger.js";
 
 // Helper: Combina data e hora para criar um DateTime válido
 function combinarDataHora(data: string, hora: string): Date {
@@ -212,6 +213,12 @@ export class RelatorioService {
 
       const relatorio = await tx.relatorio.create({
         data: relatorioData,
+      });
+
+      await auditLogger(tx, {
+        relatorioId: relatorio.id,
+        usuarioId: criadoPorId,
+        acao: "CREATE",
       });
 
       // técnicos
@@ -516,6 +523,12 @@ export class RelatorioService {
         data: updateData,
       });
 
+      await auditLogger(tx, {
+        relatorioId: updated.id,
+        usuarioId: requesterUserId,
+        acao: "UPDATE",
+      });
+
       // técnicos
       if (data.tecnicos !== undefined) {
         await tx.relatorioTecnico.deleteMany({
@@ -659,8 +672,16 @@ export class RelatorioService {
       "excluir",
     );
 
-    await this.prisma.relatorio.delete({
-      where: { id },
+    await this.prisma.$transaction(async (tx) => {
+      await auditLogger(tx, {
+        relatorioId: id,
+        usuarioId: requesterUserId,
+        acao: "DELETE",
+      });
+
+      await tx.relatorio.delete({
+        where: { id },
+      });
     });
   }
 }

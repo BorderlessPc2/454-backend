@@ -1,6 +1,7 @@
 import express, { type Request, type Response, type NextFunction } from "express";
 import path from "path";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import swaggerUi from "swagger-ui-express";
 import { loadOpenApiSpec } from "./docs/loadOpenApi.js";
@@ -56,6 +57,7 @@ app.use(
 );
 
 app.use(express.json({ limit: "1mb" }));
+app.use(cookieParser());
 
 if (process.env["OPS_REQUEST_LOG"] === "1") {
 	app.use((req: Request, res: Response, next: NextFunction) => {
