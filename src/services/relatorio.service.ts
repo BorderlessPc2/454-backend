@@ -684,4 +684,35 @@ export class RelatorioService {
       });
     });
   }
+
+  async findAuditLogsByRelatorioId(
+    relatorioId: number,
+    scopedUnidadeId: number | null,
+  ) {
+    const relatorio = await this.prisma.relatorio.findFirst({
+      where:
+        scopedUnidadeId === null
+          ? { id: relatorioId }
+          : { id: relatorioId, cliente: { unidadeId: scopedUnidadeId } },
+      select: { id: true },
+    });
+
+    if (!relatorio) {
+      return null;
+    }
+
+    return this.prisma.auditLog.findMany({
+      where: { relatorioId },
+      orderBy: { timestamp: "desc" },
+      include: {
+        usuario: {
+          select: {
+            id: true,
+            nome: true,
+            username: true,
+          },
+        },
+      },
+    });
+  }
 }

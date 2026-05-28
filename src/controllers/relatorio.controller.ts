@@ -116,6 +116,32 @@ export class RelatorioController {
     }
   }
 
+  static async findAuditLogs(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const scope = resolveScopedUnidadeIdForRequest(req.user);
+      if (!scope.ok) {
+        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        return;
+      }
+      const { scopedUnidadeId } = scope;
+
+      const id = parseInt(req.params["id"] ?? "0");
+      const logs = await relatorioService.findAuditLogsByRelatorioId(
+        id,
+        scopedUnidadeId,
+      );
+
+      if (logs === null) {
+        res.status(404).json({ error: "Relatório não encontrado" });
+        return;
+      }
+
+      res.json(logs);
+    } catch {
+      res.status(500).json({ error: "Erro ao buscar histórico de auditoria" });
+    }
+  }
+
   static async update(req: AuthRequest, res: Response): Promise<void> {
     try {
       const scope = resolveScopedUnidadeIdForRequest(req.user);
