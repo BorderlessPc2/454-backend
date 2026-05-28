@@ -4,7 +4,7 @@ import { AuthService } from "../services/auth.service.js";
 import { prisma } from "../lib/prisma.js";
 import type { LoginDTO, CreateUserDTO, UpdateUserDTO } from "../types/dtos.js";
 import type { AuthRequest } from "../middlewares/auth.middleware.js";
-import { AUTH_COOKIE_NAME } from "../lib/auth-cookie.js";
+import { AUTH_COOKIE_NAME, getAuthCookieOptions } from "../lib/auth-cookie.js";
 
 const authService = new AuthService(prisma);
 
@@ -14,14 +14,7 @@ export class AuthController {
       const data: LoginDTO = req.body;
       const result = await authService.login(data);
 
-      // Cookie httpOnly para eliminar armazenamento em localStorage.
-      // Observação: `secure: true` exige HTTPS.
-      res.cookie(AUTH_COOKIE_NAME, result.token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "strict",
-        path: "/",
-      });
+      res.cookie(AUTH_COOKIE_NAME, result.token, getAuthCookieOptions());
 
       res.json({ user: result.user });
     } catch (error) {
