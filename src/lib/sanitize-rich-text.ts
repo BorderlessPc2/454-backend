@@ -32,7 +32,9 @@ const RICH_TEXT_OPTIONS: sanitizeHtml.IOptions = {
 const MAX_OBSERVACOES_LENGTH = 50_000;
 
 /** Sanitiza HTML rico (TipTap) antes de persistir ou retornar. */
-export function sanitizeRichTextHtml(raw: string | null | undefined): string | null {
+export function sanitizeRichTextHtml(
+  raw: string | null | undefined,
+): string | null {
   if (raw == null) {
     return null;
   }

@@ -7,7 +7,7 @@ const output = sanitizeRichTextHtml(input);
 assert.strictEqual(
   output,
   "<p>Primeira linha<br>Segunda linha</p>",
-  "sanitizeRichTextHtml deve preservar <br> dentro de <p> e normalizar para <br>"
+  "sanitizeRichTextHtml deve preservar <br> dentro de <p> e normalizar para <br>",
 );
 
 console.log("PASS: sanitizeRichTextHtml preserves and normalizes <br> tags");
