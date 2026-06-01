@@ -48,7 +48,9 @@ export function sanitizeRichTextHtml(raw: string | null | undefined): string | n
     );
   }
 
-  const sanitized = sanitizeHtml(trimmed, RICH_TEXT_OPTIONS).trim();
+  const sanitized = sanitizeHtml(trimmed, RICH_TEXT_OPTIONS)
+    .replace(/<br\s*\/?>/gi, "<br>")
+    .trim();
   const textOnly = sanitized.replace(/<[^>]*>/g, "").trim();
 
   return textOnly ? sanitized : null;
