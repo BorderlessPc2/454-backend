@@ -43,7 +43,7 @@ body {
   width: 130px;
 }
 
-.logo-box img {
+.header-logo {
   width: 32px;
   height: 41px;
   object-fit: contain;
@@ -366,14 +366,14 @@ body {
   font-weight: 700;
 }
 
-.footer-logo {
+.footer-logo-wrap {
   width: 40px;
   display: flex;
   align-items: flex-end;
   justify-content: flex-end;
 }
 
-.footer-logo img {
+.footer-logo {
   width: 32px;
   height: 41px;
   object-fit: contain;
