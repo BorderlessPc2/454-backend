@@ -1,0 +1,371 @@
+@page {
+  size: A4;
+  margin: 16px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 9px;
+  color: #111111;
+  line-height: 1.35;
+}
+
+.page {
+  position: relative;
+  min-height: 100vh;
+  padding-bottom: 320px;
+}
+
+.page-main {
+  width: 100%;
+}
+
+/* Cabeçalho */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  border-bottom: 2px solid #111111;
+  padding-bottom: 8px;
+}
+
+.logo-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 130px;
+}
+
+.logo-box img {
+  width: 32px;
+  height: 41px;
+  object-fit: contain;
+}
+
+.logo-text {
+  font-weight: 600;
+  font-size: 17px;
+  color: #111111;
+}
+
+.title-box {
+  flex: 1;
+  text-align: center;
+  padding: 0 10px;
+}
+
+.page-title {
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+}
+
+.header-meta {
+  width: 110px;
+  text-align: right;
+}
+
+.meta-line {
+  font-size: 9px;
+  margin-bottom: 2px;
+}
+
+/* Seções */
+.section-title-wrap {
+  background-color: #111111;
+  border: 1px solid #111111;
+  padding: 4px 8px;
+}
+
+.section-title {
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.section-body {
+  border: 1px solid #111111;
+  border-top: none;
+  padding: 8px;
+  margin-bottom: 10px;
+}
+
+.info-row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 3px;
+}
+
+.info-line {
+  margin-right: 14px;
+  margin-bottom: 2px;
+}
+
+.info-line-full {
+  width: 100%;
+  margin-bottom: 2px;
+}
+
+.label {
+  font-weight: 700;
+}
+
+.services-body {
+  border: 1px solid #111111;
+  border-top: none;
+  padding: 8px;
+  margin-bottom: 10px;
+}
+
+.setor-block {
+  margin-bottom: 7px;
+}
+
+.setor-title {
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.bullet-line {
+  margin-left: 10px;
+  margin-bottom: 3px;
+}
+
+.empty-line {
+  color: #4b5563;
+}
+
+/* TipTap HTML */
+.servicos-html p {
+  margin: 0 0 4px 0;
+}
+
+.servicos-html p:last-child {
+  margin-bottom: 0;
+}
+
+.servicos-html ul,
+.servicos-html ol {
+  margin: 4px 0;
+  padding-left: 20px;
+}
+
+.servicos-html li {
+  margin: 0;
+}
+
+.servicos-html strong,
+.servicos-html b {
+  font-weight: 700;
+}
+
+.servicos-html em,
+.servicos-html i {
+  font-style: italic;
+}
+
+/* Rodapé fixo — stack inferior */
+.page-bottom-stack {
+  position: fixed;
+  bottom: 70px;
+  left: 16px;
+  right: 16px;
+}
+
+.highlight-card {
+  width: 100%;
+}
+
+.highlight-card + .highlight-card {
+  margin-top: 10px;
+}
+
+.highlight-title-wrap {
+  background-color: #eab308;
+  border: 1px solid #111111;
+  padding: 3px 8px;
+  width: 100%;
+}
+
+.highlight-title {
+  font-weight: 700;
+  font-size: 9.5px;
+  text-transform: uppercase;
+}
+
+.highlight-body {
+  border: 1px solid #111111;
+  border-top: none;
+  padding: 5px 6px;
+  width: 100%;
+}
+
+.highlight-body-signatures {
+  padding-top: 10px;
+  padding-bottom: 8px;
+  min-height: 88px;
+}
+
+/* Tabela de horários */
+.horario-table {
+  width: 100%;
+}
+
+.horario-table-head {
+  display: flex;
+  border-bottom: 1px solid #d1d5db;
+  padding-bottom: 2px;
+  margin-bottom: 3px;
+}
+
+.horario-table-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.horario-head-text {
+  font-size: 7px;
+  font-weight: 700;
+  color: #4b5563;
+  text-transform: uppercase;
+}
+
+.horario-cell-periodo {
+  width: 44px;
+  font-weight: 700;
+  font-size: 8px;
+}
+
+.horario-cell-intervalo {
+  flex: 1;
+  font-size: 8px;
+}
+
+.horario-cell-duracao {
+  width: 72px;
+  font-size: 8px;
+  text-align: right;
+}
+
+.total-horas-row {
+  display: flex;
+  margin-top: 4px;
+  padding-top: 3px;
+  border-top: 1px solid #111111;
+}
+
+.total-horas-label {
+  flex: 1;
+  font-weight: 700;
+  font-size: 8.5px;
+}
+
+.total-horas-value {
+  width: 38px;
+  font-weight: 700;
+  font-size: 8.5px;
+  text-align: right;
+}
+
+/* Assinaturas */
+.signatures {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.sign-col {
+  width: 48.5%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sign-area {
+  width: 100%;
+  height: 44px;
+  margin-bottom: 6px;
+}
+
+.sign-line {
+  width: 100%;
+  border-top: 1px solid #111111;
+  margin-bottom: 5px;
+}
+
+.sign-name {
+  font-weight: 700;
+  text-align: center;
+}
+
+.sign-hint {
+  font-size: 8px;
+  text-align: center;
+}
+
+/* Texto legal */
+.legal-text-wrap {
+  position: fixed;
+  bottom: 52px;
+  left: 20px;
+  right: 20px;
+}
+
+.legal-text {
+  font-size: 5.5px;
+  text-align: center;
+  color: #374151;
+  width: 100%;
+}
+
+/* Rodapé corporativo */
+.footer {
+  position: fixed;
+  bottom: 12px;
+  left: 20px;
+  right: 20px;
+  border-top: 1px solid #111111;
+  padding-top: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.footer-left {
+  flex: 1;
+}
+
+.footer-left-line {
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+.footer-center {
+  text-align: center;
+}
+
+.footer-web1 {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.footer-web2 {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.footer-logo img {
+  width: 32px;
+  height: 41px;
+  object-fit: contain;
+}

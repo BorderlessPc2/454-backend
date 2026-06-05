@@ -3,7 +3,13 @@ import {
   RelatorioService,
   RelatorioForbiddenError,
 } from "../services/relatorio.service.js";
+import {
+  RelatorioPdfService,
+  RelatorioPdfUnavailableError,
+} from "../services/relatorio-pdf.service.js";
+import { ConfiguracaoService } from "../services/configuracao.service.js";
 import { prisma } from "../lib/prisma.js";
+import { resolvePublicLogoUrl } from "../lib/public-logo-url.js";
 import type {
   CreateRelatorioDTO,
   UpdateRelatorioDTO,
@@ -13,6 +19,8 @@ import type { AuthRequest } from "../middlewares/auth.middleware.js";
 import { resolveScopedUnidadeIdForRequest } from "../lib/scoped-unidade.js";
 
 const relatorioService = new RelatorioService(prisma);
+const relatorioPdfService = new RelatorioPdfService();
+const configuracaoService = new ConfiguracaoService(prisma);
 
 export class RelatorioController {
   static async create(req: AuthRequest, res: Response): Promise<void> {
@@ -223,7 +231,12 @@ export class RelatorioController {
       }
       const { scopedUnidadeId } = scope;
 
-      const id = parseInt(req.params["id"] ?? "0");
+      const id = parseInt(req.params["id"] ?? "0", 10);
+      if (Number.isNaN(id) || id <= 0) {
+        res.status(400).json({ error: "ID inválido" });
+        return;
+      }
+
       res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
       res.setHeader("Pragma", "no-cache");
       res.setHeader("Expires", "0");
@@ -234,12 +247,78 @@ export class RelatorioController {
       );
       res.json(relatorio);
     } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === "Relatório não encontrado"
+      ) {
+        res.status(404).json({ error: error.message });
+        return;
+      }
       console.error("Erro ao carregar relatório para o frontend:", error);
       res.status(500).json({
         error:
           error instanceof Error
             ? error.message
             : "Erro ao carregar relatório",
+      });
+    }
+  }
+
+  static async downloadPdfFile(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const scope = resolveScopedUnidadeIdForRequest(req.user);
+      if (!scope.ok) {
+        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        return;
+      }
+      const { scopedUnidadeId } = scope;
+
+      const id = parseInt(req.params["id"] ?? "0", 10);
+      if (Number.isNaN(id) || id <= 0) {
+        res.status(400).json({ error: "ID inválido" });
+        return;
+      }
+
+      const relatorio = await relatorioService.getRelatorioParaPdf(
+        id,
+        scopedUnidadeId,
+      );
+
+      const config = await configuracaoService.get();
+      const pdfConfig = {
+        logoUrl: resolvePublicLogoUrl(config?.logoUrl),
+        textoRodapeRelatorio: config?.textoRodapeRelatorio ?? null,
+      };
+
+      const buffer = await relatorioPdfService.generatePdfBuffer(
+        relatorio,
+        pdfConfig,
+      );
+
+      const filename = `Relatório Técnico - ${relatorio.id}.pdf`;
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${filename}"`,
+      );
+      res.setHeader("Cache-Control", "no-store");
+      res.send(buffer);
+    } catch (error) {
+      if (error instanceof RelatorioPdfUnavailableError) {
+        res.status(503).json({ error: error.message });
+        return;
+      }
+      if (
+        error instanceof Error &&
+        error.message === "Relatório não encontrado"
+      ) {
+        res.status(404).json({ error: error.message });
+        return;
+      }
+      console.error("Erro ao gerar PDF do relatório:", error);
+      res.status(500).json({
+        error:
+          error instanceof Error ? error.message : "Falha ao gerar PDF",
       });
     }
   }

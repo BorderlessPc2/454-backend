@@ -8,6 +8,7 @@ router.use(...protectedMiddleware);
 
 router.post("/", RelatorioController.create);
 router.get("/", RelatorioController.findAll);
+router.get("/:id/pdf-file", RelatorioController.downloadPdfFile);
 router.get("/:id/pdf-layout", RelatorioController.getRelatorioParaPdf);
 router.get("/:id/pdf", RelatorioController.getRelatorioParaPdf);
 router.get("/:id/audit-logs", RelatorioController.findAuditLogs);
