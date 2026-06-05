@@ -19,7 +19,7 @@ body {
 .page {
   position: relative;
   min-height: 100vh;
-  padding-bottom: 320px;
+  padding-bottom: 360px;
 }
 
 .page-main {
@@ -173,10 +173,10 @@ body {
   font-style: italic;
 }
 
-/* Rodapé fixo — stack inferior */
+/* Rodapé fixo — stack inferior (horários + assinaturas) */
 .page-bottom-stack {
   position: fixed;
-  bottom: 70px;
+  bottom: 98px;
   left: 16px;
   right: 16px;
 }
@@ -313,12 +313,13 @@ body {
   text-align: center;
 }
 
-/* Texto legal */
+/* Texto legal — folga de 22px abaixo das assinaturas */
 .legal-text-wrap {
   position: fixed;
-  bottom: 52px;
+  bottom: 76px;
   left: 20px;
   right: 20px;
+  padding-top: 6px;
 }
 
 .legal-text {
@@ -326,6 +327,7 @@ body {
   text-align: center;
   color: #374151;
   width: 100%;
+  line-height: 1.3;
 }
 
 /* Rodapé corporativo */
@@ -362,6 +364,13 @@ body {
 .footer-web2 {
   font-size: 12px;
   font-weight: 700;
+}
+
+.footer-logo {
+  width: 40px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
 }
 
 .footer-logo img {

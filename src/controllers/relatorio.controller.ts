@@ -9,7 +9,6 @@ import {
 } from "../services/relatorio-pdf.service.js";
 import { ConfiguracaoService } from "../services/configuracao.service.js";
 import { prisma } from "../lib/prisma.js";
-import { resolvePublicLogoUrl } from "../lib/public-logo-url.js";
 import type {
   CreateRelatorioDTO,
   UpdateRelatorioDTO,
@@ -286,7 +285,7 @@ export class RelatorioController {
 
       const config = await configuracaoService.get();
       const pdfConfig = {
-        logoUrl: resolvePublicLogoUrl(config?.logoUrl),
+        logoStoragePath: config?.logoUrl ?? null,
         textoRodapeRelatorio: config?.textoRodapeRelatorio ?? null,
       };
 

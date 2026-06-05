@@ -15,6 +15,7 @@ import {
   type RelatorioPdfFooterConfig,
 } from "../lib/relatorio-pdf-footer.js";
 import { sanitizeRichTextHtml } from "../lib/sanitize-rich-text.js";
+import { resolveLogoDataUrl } from "../lib/resolve-logo-data-url.js";
 
 export type RelatorioPdfData = {
   id: number;
@@ -44,7 +45,8 @@ export type RelatorioPdfData = {
 };
 
 export type PdfConfig = {
-  logoUrl: string | null;
+  /** Caminho salvo no banco (ex.: /uploads/system-logo.png). */
+  logoStoragePath: string | null;
   textoRodapeRelatorio: string | null;
 };
 
@@ -161,10 +163,13 @@ function renderObservacoes(observacoes: string | null): string {
 }
 
 export class RelatorioPdfService {
-  buildHtml(relatorio: RelatorioPdfData, config: PdfConfig): string {
+  buildHtml(
+    relatorio: RelatorioPdfData,
+    config: PdfConfig,
+    logoDataUrl: string | null,
+  ): string {
     const css = loadCss();
     const footer = mapConfiguracoesToPdfFooter(config.textoRodapeRelatorio);
-    const logoUrl = config.logoUrl?.trim() || "";
 
     const tecnicoNome = fieldOrNA(
       relatorio.tecnicos[0]?.nome ?? relatorio.criadoPor.nome,
@@ -183,8 +188,8 @@ export class RelatorioPdfService {
     const observacoesHtml = renderObservacoes(relatorio.observacoes);
     const horariosHtml = renderHorariosTable(relatorio.horarios);
 
-    const logoImg = logoUrl
-      ? `<img src="${escapeHtml(logoUrl)}" alt="Logo" />`
+    const logoImg = logoDataUrl
+      ? `<img src="${logoDataUrl}" alt="Logo" class="pdf-logo" />`
       : "";
 
     return `<!DOCTYPE html>
@@ -293,7 +298,8 @@ export class RelatorioPdfService {
     relatorio: RelatorioPdfData,
     config: PdfConfig,
   ): Promise<Buffer> {
-    const html = this.buildHtml(relatorio, config);
+    const logoDataUrl = await resolveLogoDataUrl(config.logoStoragePath);
+    const html = this.buildHtml(relatorio, config, logoDataUrl);
 
     let browser: Awaited<ReturnType<typeof launchChromiumBrowser>> | undefined;
 
