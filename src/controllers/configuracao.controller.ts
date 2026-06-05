@@ -59,8 +59,19 @@ export class ConfiguracaoController {
       } = {};
 
       if (body.dataInicio !== undefined && body.dataFim !== undefined) {
-        patch.dataInicio = new Date(body.dataInicio);
-        patch.dataFim = new Date(body.dataFim);
+        const dataInicio = new Date(body.dataInicio);
+        const dataFim = new Date(body.dataFim);
+
+        if (Number.isNaN(dataInicio.getTime()) || Number.isNaN(dataFim.getTime())) {
+          res.status(400).json({
+            error:
+              "Horário inválido. Informe dataInicio e dataFim em formato ISO (ex.: 2026-06-05T08:00:00).",
+          });
+          return;
+        }
+
+        patch.dataInicio = dataInicio;
+        patch.dataFim = dataFim;
       } else if (
         body.dataInicio !== undefined ||
         body.dataFim !== undefined

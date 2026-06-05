@@ -14,6 +14,10 @@ export type LogoUploadFile = {
   mimetype: string;
 };
 
+function isValidDate(value: Date): boolean {
+  return !Number.isNaN(value.getTime());
+}
+
 export class ConfiguracaoService {
   constructor(private prisma: PrismaClient) {}
 
@@ -64,8 +68,16 @@ export class ConfiguracaoService {
       );
     }
 
-    if (hasHorario && opts.dataFim! < opts.dataInicio!) {
-      throw new Error("dataFim deve ser posterior ou igual a dataInicio");
+    if (hasHorario) {
+      if (!isValidDate(opts.dataInicio!)) {
+        throw new Error("dataInicio inválida");
+      }
+      if (!isValidDate(opts.dataFim!)) {
+        throw new Error("dataFim inválida");
+      }
+      if (opts.dataFim! < opts.dataInicio!) {
+        throw new Error("dataFim deve ser posterior ou igual a dataInicio");
+      }
     }
 
     const existing = await this.prisma.configuracao.findFirst();
@@ -101,13 +113,34 @@ export class ConfiguracaoService {
     });
   }
 
+  /** Atualiza somente logoUrl — não altera horário nem rodapé. */
+  async updateLogoUrl(logoUrl: string) {
+    const existing = await this.prisma.configuracao.findFirst();
+
+    if (!existing) {
+      const horario = this.defaultHorarioDoDia();
+      return this.prisma.configuracao.create({
+        data: {
+          dataInicio: horario.dataInicio,
+          dataFim: horario.dataFim,
+          logoUrl,
+        },
+      });
+    }
+
+    return this.prisma.configuracao.update({
+      where: { id: existing.id },
+      data: { logoUrl },
+    });
+  }
+
   async saveLogoFile(file: LogoUploadFile) {
     const { logoPath } = await writeSystemLogoFile(
       file.buffer,
       file.originalname,
       file.mimetype,
     );
-    return this.patch({ logoUrl: logoPath });
+    return this.updateLogoUrl(logoPath);
   }
 
   /** Mantido para uso legado ou scripts; preferir `patch`. */
