@@ -1,6 +1,8 @@
-import chromium from "@sparticuz/chromium";
-import puppeteer from "puppeteer-core";
-import { existsSync, readFileSync } from "fs";
+import { readFileSync } from "fs";
+import {
+  launchChromiumBrowser,
+  RelatorioPdfUnavailableError,
+} from "../lib/chromium-launcher.js";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { escapeHtml } from "../lib/escape-html.js";
@@ -46,25 +48,12 @@ export type PdfConfig = {
   textoRodapeRelatorio: string | null;
 };
 
-export class RelatorioPdfUnavailableError extends Error {
-  constructor(message = "Chromium indisponível para geração de PDF") {
-    super(message);
-    this.name = "RelatorioPdfUnavailableError";
-  }
-}
+export { RelatorioPdfUnavailableError } from "../lib/chromium-launcher.js";
 
 const LEGAL_TEXT =
   "A LINQ INFORMÁTICA EIRELI-ME, seus diretores, sócios e funcionários, ficam ISENTOS DE QUAISQUER RESPONSABILIDADES, " +
   "sejam elas jurídicas, cíveis, penais ou criminais, referentes ao USO DE LICENÇAS DE SOFTWARE pela EMPRESA CONTRATANTE, " +
   "na sua sede matriz e respectivas filiais.";
-
-const WINDOWS_CHROME_PATHS = [
-  "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-  "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-  process.env["LOCALAPPDATA"]
-    ? `${process.env["LOCALAPPDATA"]}\\Google\\Chrome\\Application\\chrome.exe`
-    : "",
-].filter(Boolean);
 
 function fieldOrNA(value: string | null | undefined): string {
   if (value == null || String(value).trim() === "") {
@@ -102,35 +91,6 @@ function loadCss(): string {
   const dir = dirname(fileURLToPath(import.meta.url));
   const cssPath = join(dir, "..", "templates", "relatorio-pdf.css");
   return readFileSync(cssPath, "utf-8");
-}
-
-async function resolveExecutablePath(): Promise<string> {
-  const envPath = process.env["PUPPETEER_EXECUTABLE_PATH"]?.trim();
-  if (envPath && existsSync(envPath)) {
-    return envPath;
-  }
-
-  if (process.platform === "linux") {
-    return chromium.executablePath();
-  }
-
-  for (const chromePath of WINDOWS_CHROME_PATHS) {
-    if (existsSync(chromePath)) {
-      return chromePath;
-    }
-  }
-
-  if (process.platform === "darwin") {
-    const macPath =
-      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-    if (existsSync(macPath)) {
-      return macPath;
-    }
-  }
-
-  throw new RelatorioPdfUnavailableError(
-    "Navegador Chromium/Chrome não encontrado. Defina PUPPETEER_EXECUTABLE_PATH.",
-  );
 }
 
 function renderHorariosTable(
@@ -334,25 +294,11 @@ export class RelatorioPdfService {
     config: PdfConfig,
   ): Promise<Buffer> {
     const html = this.buildHtml(relatorio, config);
-    const executablePath = await resolveExecutablePath();
 
-    const launchOptions: Parameters<typeof puppeteer.launch>[0] = {
-      executablePath,
-      headless: true,
-      args:
-        process.platform === "linux"
-          ? chromium.args
-          : [
-              "--no-sandbox",
-              "--disable-setuid-sandbox",
-              "--disable-dev-shm-usage",
-            ],
-    };
-
-    let browser: Awaited<ReturnType<typeof puppeteer.launch>> | undefined;
+    let browser: Awaited<ReturnType<typeof launchChromiumBrowser>> | undefined;
 
     try {
-      browser = await puppeteer.launch(launchOptions);
+      browser = await launchChromiumBrowser();
       const page = await browser.newPage();
       await page.setContent(html, {
         waitUntil: "domcontentloaded",
