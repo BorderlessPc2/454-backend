@@ -30,8 +30,11 @@ router.post(
   "/login",
   loginRateLimiter,
   async (req: Request, res: Response, next: NextFunction) => {
+    res.locals["loginRouteStartedAt"] = Date.now();
     try {
+      const configStartedAt = Date.now();
       const config = await configuracaoService.get();
+      res.locals["loginConfigMs"] = Date.now() - configStartedAt;
       await horarioMiddleware(req, res, next, config);
     } catch {
       next();

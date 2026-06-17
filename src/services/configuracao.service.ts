@@ -18,12 +18,31 @@ function isValidDate(value: Date): boolean {
   return !Number.isNaN(value.getTime());
 }
 
+const CONFIG_CACHE_TTL_MS = 60_000;
+
 export class ConfiguracaoService {
+  private configCache: {
+    data: Awaited<ReturnType<ConfiguracaoService["fetchConfig"]>> | null;
+    expiresAt: number;
+  } | null = null;
+
   constructor(private prisma: PrismaClient) {}
 
-  async get() {
+  private invalidateConfigCache(): void {
+    this.configCache = null;
+  }
+
+  private async fetchConfig() {
     try {
-      return await this.prisma.configuracao.findFirst();
+      return await this.prisma.configuracao.findFirst({
+        select: {
+          id: true,
+          dataInicio: true,
+          dataFim: true,
+          textoRodapeRelatorio: true,
+          logoUrl: true,
+        },
+      });
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -34,6 +53,17 @@ export class ConfiguracaoService {
 
       throw error;
     }
+  }
+
+  async get() {
+    const now = Date.now();
+    if (this.configCache && this.configCache.expiresAt > now) {
+      return this.configCache.data;
+    }
+
+    const data = await this.fetchConfig();
+    this.configCache = { data, expiresAt: now + CONFIG_CACHE_TTL_MS };
+    return data;
   }
 
   private defaultHorarioDoDia(): { dataInicio: Date; dataFim: Date } {
@@ -86,7 +116,7 @@ export class ConfiguracaoService {
       const horario = hasHorario
         ? { dataInicio: opts.dataInicio!, dataFim: opts.dataFim! }
         : this.defaultHorarioDoDia();
-      return this.prisma.configuracao.create({
+      const created = await this.prisma.configuracao.create({
         data: {
           id: 1,
           dataInicio: horario.dataInicio,
@@ -97,9 +127,11 @@ export class ConfiguracaoService {
           ...(hasLogo ? { logoUrl: opts.logoUrl } : {}),
         },
       });
+      this.invalidateConfigCache();
+      return created;
     }
 
-    return this.prisma.configuracao.update({
+    const updated = await this.prisma.configuracao.update({
       where: { id: existing.id },
       data: {
         ...(hasHorario
@@ -111,6 +143,8 @@ export class ConfiguracaoService {
         ...(hasLogo ? { logoUrl: opts.logoUrl } : {}),
       },
     });
+    this.invalidateConfigCache();
+    return updated;
   }
 
   /** Atualiza somente logoUrl — não altera horário nem rodapé. */
@@ -119,19 +153,23 @@ export class ConfiguracaoService {
 
     if (!existing) {
       const horario = this.defaultHorarioDoDia();
-      return this.prisma.configuracao.create({
+      const created = await this.prisma.configuracao.create({
         data: {
           dataInicio: horario.dataInicio,
           dataFim: horario.dataFim,
           logoUrl,
         },
       });
+      this.invalidateConfigCache();
+      return created;
     }
 
-    return this.prisma.configuracao.update({
+    const updated = await this.prisma.configuracao.update({
       where: { id: existing.id },
       data: { logoUrl },
     });
+    this.invalidateConfigCache();
+    return updated;
   }
 
   async saveLogoFile(file: LogoUploadFile) {

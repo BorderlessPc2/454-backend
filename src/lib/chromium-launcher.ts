@@ -1,9 +1,8 @@
-import chromium from "@sparticuz/chromium";
-import { Browser, getInstalledBrowsers } from "@puppeteer/browsers";
-import puppeteer, { type LaunchOptions } from "puppeteer-core";
 import { existsSync, rmSync, statSync } from "fs";
 import { homedir, tmpdir } from "os";
 import { join } from "path";
+import type { Browser, LaunchOptions } from "puppeteer-core";
+
 export class RelatorioPdfUnavailableError extends Error {
   constructor(message = "Chromium indisponível para geração de PDF") {
     super(message);
@@ -38,6 +37,7 @@ function clearSparticuzCacheIfInvalid(): void {
 }
 
 async function tryPuppeteerCacheExecutable(): Promise<string | null> {
+  const { Browser, getInstalledBrowsers } = await import("@puppeteer/browsers");
   const cacheDirs = [
     process.env["PUPPETEER_CACHE_DIR"],
     join(process.cwd(), ".cache", "puppeteer"),
@@ -69,6 +69,7 @@ async function tryPuppeteerCacheExecutable(): Promise<string | null> {
 
 async function trySparticuzExecutable(): Promise<string> {
   clearSparticuzCacheIfInvalid();
+  const chromium = (await import("@sparticuz/chromium")).default;
   chromium.setGraphicsMode = false;
 
   const executablePath = await chromium.executablePath();
@@ -119,9 +120,8 @@ async function resolveExecutablePath(): Promise<{
   );
 }
 
-export async function launchChromiumBrowser(): Promise<
-  Awaited<ReturnType<typeof puppeteer.launch>>
-> {
+export async function launchChromiumBrowser(): Promise<Browser> {
+  const puppeteer = (await import("puppeteer-core")).default;
   const { executablePath, useSparticuzArgs } = await resolveExecutablePath();
   const headless = useSparticuzArgs ? ("shell" as const) : true;
 
@@ -129,7 +129,10 @@ export async function launchChromiumBrowser(): Promise<
     executablePath,
     headless,
     args: useSparticuzArgs
-      ? await puppeteer.defaultArgs({ args: chromium.args, headless: "shell" })
+      ? await puppeteer.defaultArgs({
+          args: (await import("@sparticuz/chromium")).default.args,
+          headless: "shell",
+        })
       : [
           "--no-sandbox",
           "--disable-setuid-sandbox",

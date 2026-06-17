@@ -10,6 +10,17 @@ const JWT_EXPIRES_IN_RAW = (
 const JWT_EXPIRES_IN = JWT_EXPIRES_IN_RAW !== "" ? JWT_EXPIRES_IN_RAW : "8h";
 const SALT_ROUNDS = 10;
 
+const LOGIN_USER_SELECT = {
+  id: true,
+  username: true,
+  nome: true,
+  role: true,
+  clienteId: true,
+  unidadeId: true,
+  password: true,
+  ativo: true,
+} as const;
+
 /** Latência mínima na falha de login para reduzir enumeração por tempo. */
 const CREDENTIAL_FAILURE_MIN_LATENCY_MS = 500;
 
@@ -105,36 +116,68 @@ export class AuthService {
       throw new Error("Email não fornecido");
     }
 
+    const credential = email;
+
     if (data.password == null || String(data.password).trim() === "") {
       throw new Error("Senha não fornecida");
     }
 
     const credentialCheckStartedAt = Date.now();
+    const loginStartedAt = credentialCheckStartedAt;
 
-    const user = await this.prisma.user.findFirst({
-      where: {
-        OR: [{ email }, { username: email }],
-      },
-    });
+    const lookupStartedAt = Date.now();
+    const user = credential.includes("@")
+      ? await this.prisma.user.findUnique({
+          where: { email: credential },
+          select: LOGIN_USER_SELECT,
+        })
+      : await this.prisma.user.findUnique({
+          where: { username: credential },
+          select: LOGIN_USER_SELECT,
+        });
+    const lookupMs = Date.now() - lookupStartedAt;
 
     if (!user || !user.ativo) {
       await delayUntilMinimumElapsed(
         credentialCheckStartedAt,
         CREDENTIAL_FAILURE_MIN_LATENCY_MS,
       );
+      console.log(
+        "[login-perf]",
+        JSON.stringify({
+          lookupMs,
+          bcryptMs: 0,
+          jwtMs: 0,
+          totalMs: Date.now() - loginStartedAt,
+          success: false,
+        }),
+      );
       throw new Error("Credenciais inválidas");
     }
 
+    const bcryptStartedAt = Date.now();
     const valid = await bcrypt.compare(String(data.password), user.password);
+    const bcryptMs = Date.now() - bcryptStartedAt;
 
     if (!valid) {
       await delayUntilMinimumElapsed(
         credentialCheckStartedAt,
         CREDENTIAL_FAILURE_MIN_LATENCY_MS,
       );
+      console.log(
+        "[login-perf]",
+        JSON.stringify({
+          lookupMs,
+          bcryptMs,
+          jwtMs: 0,
+          totalMs: Date.now() - loginStartedAt,
+          success: false,
+        }),
+      );
       throw new Error("Credenciais inválidas");
     }
 
+    const jwtStartedAt = Date.now();
     const signOpts = {
       expiresIn: JWT_EXPIRES_IN,
     } as SignOptions;
@@ -148,6 +191,18 @@ export class AuthService {
       },
       getJwtSecret(),
       signOpts,
+    );
+    const jwtMs = Date.now() - jwtStartedAt;
+
+    console.log(
+      "[login-perf]",
+      JSON.stringify({
+        lookupMs,
+        bcryptMs,
+        jwtMs,
+        totalMs: Date.now() - loginStartedAt,
+        success: true,
+      }),
     );
 
     return {

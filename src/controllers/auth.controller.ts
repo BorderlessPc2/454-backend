@@ -10,13 +10,30 @@ const authService = new AuthService(prisma);
 
 export class AuthController {
   static async login(req: Request, res: Response): Promise<void> {
+    const routeStartedAt =
+      (res.locals["loginRouteStartedAt"] as number | undefined) ?? Date.now();
+    const configMs =
+      (res.locals["loginConfigMs"] as number | undefined) ?? null;
+
     try {
       const data: LoginDTO = req.body;
+      const handlerStartedAt = Date.now();
       const result = await authService.login(data);
+      const handlerMs = Date.now() - handlerStartedAt;
 
       res.cookie(AUTH_COOKIE_NAME, result.token, getAuthCookieOptions());
 
-      res.json({ user: result.user });
+      console.log(
+        "[login-perf]",
+        JSON.stringify({
+          configMs,
+          handlerMs,
+          totalMs: Date.now() - routeStartedAt,
+          success: true,
+        }),
+      );
+
+      res.json({ token: result.token, user: result.user });
     } catch (error) {
       console.error("Erro no login:", error);
 
