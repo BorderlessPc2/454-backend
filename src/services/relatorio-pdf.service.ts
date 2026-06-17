@@ -257,7 +257,7 @@ export class RelatorioPdfService {
         <div class="highlight-body">${horariosHtml}</div>
       </div>
 
-      <div class="highlight-card">
+      <div class="highlight-card signatures-card">
         <div class="highlight-title-wrap">
           <div class="highlight-title">Assinatura dos Responsáveis</div>
         </div>
@@ -278,9 +278,7 @@ export class RelatorioPdfService {
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="legal-text-wrap">
       <p class="legal-text">${escapeHtml(LEGAL_TEXT)}</p>
     </div>
 
