@@ -188,9 +188,9 @@ export class RelatorioPdfService {
     const observacoesHtml = renderObservacoes(relatorio.observacoes);
     const horariosHtml = renderHorariosTable(relatorio.horarios);
 
-    const headerLogoImg = logoDataUrl
+    const headerLogoBlock = logoDataUrl
       ? `<img src="${logoDataUrl}" alt="Logo" class="header-logo" />`
-      : "";
+      : `<span class="logo-text">Linq</span>`;
     const footerLogoImg = logoDataUrl
       ? `<img src="${logoDataUrl}" alt="Logo" class="footer-logo" />`
       : "";
@@ -206,8 +206,7 @@ export class RelatorioPdfService {
     <div class="page-main">
       <header class="header">
         <div class="logo-box">
-          ${headerLogoImg}
-          <span class="logo-text">Linq</span>
+          ${headerLogoBlock}
         </div>
         <div class="title-box">
           <h1 class="page-title">${escapeHtml(titulo.toUpperCase())}</h1>

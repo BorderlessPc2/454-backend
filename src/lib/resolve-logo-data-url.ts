@@ -2,6 +2,7 @@ import { existsSync } from "fs";
 import { readFile } from "fs/promises";
 import { extname, join } from "path";
 import { getUploadsDir } from "./logo-upload.js";
+import { resolvePublicLogoUrl } from "./public-logo-url.js";
 
 const MIME_BY_EXT: Record<string, string> = {
   ".png": "image/png",
@@ -68,7 +69,18 @@ export async function resolveLogoDataUrl(
   }
 
   if (/^https?:\/\//i.test(normalized)) {
-    return fetchRemoteAsDataUrl(normalized);
+    const remote = await fetchRemoteAsDataUrl(normalized);
+    if (remote) {
+      return remote;
+    }
+  }
+
+  const publicUrl = resolvePublicLogoUrl(normalized);
+  if (publicUrl) {
+    const remote = await fetchRemoteAsDataUrl(publicUrl);
+    if (remote) {
+      return remote;
+    }
   }
 
   return null;

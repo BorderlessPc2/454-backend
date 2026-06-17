@@ -39,14 +39,21 @@ body {
 .logo-box {
   display: flex;
   align-items: center;
-  gap: 6px;
-  width: 130px;
+  justify-content: flex-start;
+  flex-shrink: 0;
+  width: auto;
+  max-width: 140px;
+  min-height: 41px;
 }
 
 .header-logo {
-  width: 32px;
-  height: 41px;
+  display: block;
+  max-width: 130px;
+  max-height: 48px;
+  width: auto;
+  height: auto;
   object-fit: contain;
+  object-position: left center;
 }
 
 .logo-text {
