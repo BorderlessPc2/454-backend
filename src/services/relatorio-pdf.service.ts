@@ -298,9 +298,10 @@ export class RelatorioPdfService {
     config: PdfConfig,
   ): Promise<Buffer> {
     const logoDataUrl =
-      config.logoDataUrl !== undefined
-        ? config.logoDataUrl
-        : await resolveLogoDataUrl(config.logoStoragePath);
+      config.logoDataUrl ??
+      (config.logoStoragePath
+        ? await resolveLogoDataUrl(config.logoStoragePath)
+        : null);
     const html = this.buildHtml(relatorio, config, logoDataUrl);
 
     let browser: Awaited<ReturnType<typeof launchChromiumBrowser>> | undefined;

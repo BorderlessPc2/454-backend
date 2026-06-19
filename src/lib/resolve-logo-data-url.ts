@@ -66,16 +66,18 @@ export async function resolveLogoDataUrl(
     }
   }
 
+  const candidateUrls = new Set<string>();
   if (/^https?:\/\//i.test(normalized)) {
-    const remote = await fetchRemoteAsDataUrl(normalized);
-    if (remote) {
-      return remote;
-    }
+    candidateUrls.add(normalized);
   }
 
   const publicUrl = resolvePublicLogoUrl(normalized);
-  if (publicUrl && publicUrl !== normalized) {
-    const remote = await fetchRemoteAsDataUrl(publicUrl);
+  if (publicUrl) {
+    candidateUrls.add(publicUrl);
+  }
+
+  for (const url of candidateUrls) {
+    const remote = await fetchRemoteAsDataUrl(url);
     if (remote) {
       return remote;
     }
