@@ -252,6 +252,8 @@ model Configuracao {
   textoRodapeRelatorio    String?  @map("texto_rodape_relatorio") @db.Text
   /** Caminho público da logo (ex.: /uploads/system-logo.png). */
   logoUrl                 String?  @map("logo_url") @db.VarChar(512)
+  /** Logo embutida em base64 para PDF (sobrevive a disco efêmero). */
+  logoDataUrl             String?  @map("logo_data_url") @db.Text
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 

@@ -22,6 +22,24 @@ export function resolveLogoExtension(
   throw new Error("Formato de imagem não suportado. Use PNG, JPG, WEBP ou SVG.");
 }
 
+const MIME_BY_EXT: Record<string, string> = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".svg": "image/svg+xml",
+};
+
+export function buildLogoDataUrl(
+  buffer: Buffer,
+  mimetype: string,
+  originalName: string,
+): string {
+  const ext = resolveLogoExtension(originalName, mimetype);
+  const mime = MIME_BY_EXT[ext] ?? mimetype.split(";")[0]?.trim() ?? "image/png";
+  return `data:${mime};base64,${buffer.toString("base64")}`;
+}
+
 export async function writeSystemLogoFile(
   buffer: Buffer,
   originalName: string,

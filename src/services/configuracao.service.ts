@@ -1,6 +1,8 @@
 import { Prisma, PrismaClient } from "@prisma/client";
-import { writeSystemLogoFile } from "../lib/logo-upload.js";
+import { writeSystemLogoFile, buildLogoDataUrl } from "../lib/logo-upload.js";
 import { normalizeLogoStoragePath } from "../lib/normalize-logo-path.js";
+import { resolvePublicLogoUrl } from "../lib/public-logo-url.js";
+import { resolveLogoDataUrl } from "../lib/resolve-logo-data-url.js";
 
 export type ConfiguracaoPatchInput = {
   dataInicio?: Date;
@@ -13,6 +15,13 @@ export type LogoUploadFile = {
   buffer: Buffer;
   originalname: string;
   mimetype: string;
+};
+
+export type PdfBranding = {
+  logoStoragePath: string | null;
+  logoUrl: string | null;
+  logoDataUrl: string | null;
+  textoRodapeRelatorio: string | null;
 };
 
 function isValidDate(value: Date): boolean {
@@ -42,6 +51,7 @@ export class ConfiguracaoService {
           dataFim: true,
           textoRodapeRelatorio: true,
           logoUrl: true,
+          logoDataUrl: true,
         },
       });
     } catch (error) {
@@ -126,7 +136,10 @@ export class ConfiguracaoService {
             ? { textoRodapeRelatorio: opts.textoRodapeRelatorio }
             : {}),
           ...(hasLogo
-            ? { logoUrl: normalizeLogoStoragePath(opts.logoUrl) }
+            ? {
+                logoUrl: normalizeLogoStoragePath(opts.logoUrl),
+                logoDataUrl: null,
+              }
             : {}),
         },
       });
@@ -144,7 +157,10 @@ export class ConfiguracaoService {
           ? { textoRodapeRelatorio: opts.textoRodapeRelatorio }
           : {}),
         ...(hasLogo
-          ? { logoUrl: normalizeLogoStoragePath(opts.logoUrl) }
+          ? {
+              logoUrl: normalizeLogoStoragePath(opts.logoUrl),
+              logoDataUrl: null,
+            }
           : {}),
       },
     });
@@ -152,8 +168,8 @@ export class ConfiguracaoService {
     return updated;
   }
 
-  /** Atualiza somente logoUrl — não altera horário nem rodapé. */
-  async updateLogoUrl(logoUrl: string) {
+  /** Atualiza logo (caminho público + base64 embutido para PDF). */
+  async updateLogo(logoUrl: string, logoDataUrl: string | null) {
     const existing = await this.prisma.configuracao.findFirst();
 
     if (!existing) {
@@ -163,6 +179,7 @@ export class ConfiguracaoService {
           dataInicio: horario.dataInicio,
           dataFim: horario.dataFim,
           logoUrl,
+          logoDataUrl,
         },
       });
       this.invalidateConfigCache();
@@ -171,10 +188,41 @@ export class ConfiguracaoService {
 
     const updated = await this.prisma.configuracao.update({
       where: { id: existing.id },
-      data: { logoUrl },
+      data: { logoUrl, logoDataUrl },
     });
     this.invalidateConfigCache();
     return updated;
+  }
+
+  async loadPdfBranding(): Promise<PdfBranding> {
+    const config = await this.get();
+    const logoStoragePath = normalizeLogoStoragePath(config?.logoUrl);
+    let logoDataUrl = config?.logoDataUrl ?? null;
+
+    if (!logoDataUrl) {
+      logoDataUrl = await resolveLogoDataUrl(logoStoragePath);
+      if (logoDataUrl && config?.id) {
+        await this.prisma.configuracao
+          .update({
+            where: { id: config.id },
+            data: { logoDataUrl },
+          })
+          .catch(() => undefined);
+        this.invalidateConfigCache();
+      }
+    }
+
+    return {
+      logoStoragePath,
+      logoUrl: resolvePublicLogoUrl(logoStoragePath),
+      logoDataUrl,
+      textoRodapeRelatorio: config?.textoRodapeRelatorio ?? null,
+    };
+  }
+
+  /** @deprecated Use updateLogo */
+  async updateLogoUrl(logoUrl: string) {
+    return this.updateLogo(logoUrl, null);
   }
 
   async saveLogoFile(file: LogoUploadFile) {
@@ -183,7 +231,12 @@ export class ConfiguracaoService {
       file.originalname,
       file.mimetype,
     );
-    return this.updateLogoUrl(logoPath);
+    const logoDataUrl = buildLogoDataUrl(
+      file.buffer,
+      file.mimetype,
+      file.originalname,
+    );
+    return this.updateLogo(logoPath, logoDataUrl);
   }
 
   /** Mantido para uso legado ou scripts; preferir `patch`. */

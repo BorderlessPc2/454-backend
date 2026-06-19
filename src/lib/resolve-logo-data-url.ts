@@ -23,12 +23,26 @@ async function readLocalUploadAsDataUrl(filename: string): Promise<string | null
   }
 
   const buffer = await readFile(filePath);
-  if (buffer.length < 32) {
+  if (buffer.length < 8) {
     console.warn(
       "[logo] Arquivo muito pequeno ou corrompido:",
       filePath,
       `(${buffer.length} bytes)`,
     );
+    return null;
+  }
+
+  const isPng = buffer[0] === 0x89 && buffer[1] === 0x50;
+  const isJpeg = buffer[0] === 0xff && buffer[1] === 0xd8;
+  const isWebp =
+    buffer.length >= 12 &&
+    buffer.toString("ascii", 0, 4) === "RIFF" &&
+    buffer.toString("ascii", 8, 12) === "WEBP";
+  const isSvg =
+    buffer.toString("utf8", 0, Math.min(buffer.length, 256)).includes("<svg");
+
+  if (!isPng && !isJpeg && !isWebp && !isSvg) {
+    console.warn("[logo] Formato de imagem não reconhecido:", filePath);
     return null;
   }
 
