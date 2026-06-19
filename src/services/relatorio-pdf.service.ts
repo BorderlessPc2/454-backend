@@ -14,8 +14,9 @@ import {
   mapConfiguracoesToPdfFooter,
   type RelatorioPdfFooterConfig,
 } from "../lib/relatorio-pdf-footer.js";
-import { sanitizeRichTextHtml } from "../lib/sanitize-rich-text.js";
+import { formatDateWallClock } from "../lib/horario-datetime.js";
 import { resolveLogoDataUrl } from "../lib/resolve-logo-data-url.js";
+import { sanitizeRichTextHtml } from "../lib/sanitize-rich-text.js";
 
 export type RelatorioPdfData = {
   id: number;
@@ -72,11 +73,7 @@ function parseDate(iso: Date | string): Date | null {
 }
 
 function formatDatePdf(d: Date): string {
-  return d.toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  return formatDateWallClock(d);
 }
 
 function buildCidadeCliente(relatorio: RelatorioPdfData): string {

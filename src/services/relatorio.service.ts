@@ -6,48 +6,12 @@ import type {
 } from "../types/dtos.js";
 import { sanitizeRichTextHtml } from "../lib/sanitize-rich-text.js";
 import { auditLogger } from "../lib/audit-logger.js";
-
-// Helper: Combina data e hora para criar um DateTime válido
-function combinarDataHora(data: string, hora: string): Date {
-  // data: "2026-02-18", hora: "09:00"
-  // resultado: "2026-02-18T09:00:00"
-  return new Date(`${data}T${hora}:00`);
-}
-
-function parseHorario(dataVisita: string, horario: string): Date {
-  if (horario.includes("T")) {
-    const dateTime = new Date(horario);
-    if (Number.isNaN(dateTime.getTime())) {
-      throw new Error("Horario invalido (ISO 8601)");
-    }
-    return dateTime;
-  }
-
-  const [baseDate] = dataVisita.split("T");
-  if (!baseDate) {
-    throw new Error("Data da visita invalida");
-  }
-  const dateTime = combinarDataHora(baseDate, horario);
-  if (Number.isNaN(dateTime.getTime())) {
-    throw new Error("Horario invalido (HH:mm)");
-  }
-  return dateTime;
-}
-
-function parseDateFilter(dateValue: string, endOfDay = false): Date {
-  const parsed = new Date(dateValue);
-  if (Number.isNaN(parsed.getTime())) {
-    throw new Error(`Data inválida para filtro: ${dateValue}`);
-  }
-
-  if (endOfDay) {
-    parsed.setHours(23, 59, 59, 999);
-  } else {
-    parsed.setHours(0, 0, 0, 0);
-  }
-
-  return parsed;
-}
+import {
+  formatDataVisitaWallClock,
+  parseDataVisita,
+  parseDateFilterWallClock,
+  parseHorario,
+} from "../lib/horario-datetime.js";
 
 const MODALIDADES_SERVICO = [
   "Sem contrato - remoto",
@@ -168,10 +132,7 @@ export class RelatorioService {
       if (!modalidadeServico) {
         throw new Error("Campo modalidade é obrigatório");
       }
-      const dataVisita = new Date(data.dataVisita);
-      if (Number.isNaN(dataVisita.getTime())) {
-        throw new Error("Data da visita inválida");
-      }
+      const dataVisita = parseDataVisita(data.dataVisita);
 
       const cliente = await tx.cliente.findFirst({
         where:
@@ -353,11 +314,11 @@ export class RelatorioService {
       where.dataVisita = {};
 
       if (filters.dataInicio) {
-        where.dataVisita.gte = parseDateFilter(filters.dataInicio);
+        where.dataVisita.gte = parseDateFilterWallClock(filters.dataInicio);
       }
 
       if (filters.dataFim) {
-        where.dataVisita.lte = parseDateFilter(filters.dataFim, true);
+        where.dataVisita.lte = parseDateFilterWallClock(filters.dataFim, true);
       }
 
       if (
@@ -498,7 +459,7 @@ export class RelatorioService {
       }
 
       if (data.dataVisita !== undefined) {
-        updateData.dataVisita = new Date(data.dataVisita);
+        updateData.dataVisita = parseDataVisita(data.dataVisita);
       }
 
       if (data.modalidade !== undefined || data.modalidadeServico !== undefined) {
@@ -583,11 +544,11 @@ export class RelatorioService {
               (horario): Prisma.RelatorioHorarioCreateManyInput => ({
                 relatorioId: id,
                 horaChegada: parseHorario(
-                  updated.dataVisita.toISOString(),
+                  formatDataVisitaWallClock(updated.dataVisita),
                   horario.horaChegada,
                 ),
                 horaSaida: parseHorario(
-                  updated.dataVisita.toISOString(),
+                  formatDataVisitaWallClock(updated.dataVisita),
                   horario.horaSaida,
                 ),
               }),

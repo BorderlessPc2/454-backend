@@ -1,3 +1,8 @@
+import {
+  formatHorarioWallClock,
+  getPeriodoWallClock,
+} from "./horario-datetime.js";
+
 export type HorarioTableRow = {
   periodo: string;
   intervalo: string;
@@ -15,11 +20,11 @@ function parseDate(value: Date | string): Date | null {
 }
 
 function formatTime(d: Date): string {
-  return d.toLocaleTimeString("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
+  return formatHorarioWallClock(d);
+}
+
+function getPeriodo(hora: Date): string {
+  return getPeriodoWallClock(hora);
 }
 
 function formatDuration(start: Date, end: Date): string {
@@ -29,13 +34,6 @@ function formatDuration(start: Date, end: Date): string {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-}
-
-function getPeriodo(hora: Date): string {
-  const h = hora.getHours();
-  if (h < 12) return "Manhã";
-  if (h < 18) return "Tarde";
-  return "Noite";
 }
 
 const ORDEM_PERIODOS = ["Manhã", "Tarde", "Noite", "N/A"] as const;

@@ -17,6 +17,10 @@ import type {
 import type { AuthRequest } from "../middlewares/auth.middleware.js";
 import { resolveScopedUnidadeIdForRequest } from "../lib/scoped-unidade.js";
 import { loadPdfBranding } from "../lib/pdf-branding.js";
+import {
+  serializeRelatorio,
+  serializeRelatorios,
+} from "../lib/serialize-relatorio.js";
 
 const relatorioService = new RelatorioService(prisma);
 const relatorioPdfService = new RelatorioPdfService();
@@ -39,7 +43,7 @@ export class RelatorioController {
         criadoPorId,
         scopedUnidadeId,
       );
-      res.status(201).json(relatorio);
+      res.status(201).json(serializeRelatorio(relatorio));
     } catch (error) {
       res.status(400).json({
         error:
@@ -92,7 +96,7 @@ export class RelatorioController {
         req.user?.role,
       );
 
-      res.json(relatorios);
+      res.json(serializeRelatorios(relatorios));
     } catch (error) {
       res.status(400).json({
         error:
@@ -118,7 +122,7 @@ export class RelatorioController {
         return;
       }
 
-      res.json(relatorio);
+      res.json(serializeRelatorio(relatorio));
     } catch (error) {
       res.status(500).json({ error: "Erro ao buscar relatório" });
     }
@@ -173,7 +177,11 @@ export class RelatorioController {
         req.user?.role,
         userId,
       );
-      res.json(relatorio);
+      if (!relatorio) {
+        res.status(404).json({ error: "Relatório não encontrado" });
+        return;
+      }
+      res.json(serializeRelatorio(relatorio));
     } catch (error) {
       if (error instanceof RelatorioForbiddenError) {
         res.status(403).json({ error: error.message });
@@ -247,7 +255,7 @@ export class RelatorioController {
       ]);
 
       res.json({
-        ...relatorio,
+        ...serializeRelatorio(relatorio),
         pdfConfig: {
           logoUrl: pdfConfig.logoUrl,
           logoDataUrl: pdfConfig.logoDataUrl,
