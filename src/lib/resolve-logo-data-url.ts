@@ -23,6 +23,15 @@ async function readLocalUploadAsDataUrl(filename: string): Promise<string | null
   }
 
   const buffer = await readFile(filePath);
+  if (buffer.length < 32) {
+    console.warn(
+      "[logo] Arquivo muito pequeno ou corrompido:",
+      filePath,
+      `(${buffer.length} bytes)`,
+    );
+    return null;
+  }
+
   const ext = extname(filePath).toLowerCase();
   const mime = MIME_BY_EXT[ext] ?? "image/png";
   return `data:${mime};base64,${buffer.toString("base64")}`;

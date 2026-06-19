@@ -17,6 +17,7 @@ import type {
 import type { AuthRequest } from "../middlewares/auth.middleware.js";
 import { resolveScopedUnidadeIdForRequest } from "../lib/scoped-unidade.js";
 import { loadPdfBranding } from "../lib/pdf-branding.js";
+import { normalizeRelatorioForPdf } from "../lib/normalize-relatorio-for-pdf.js";
 import {
   serializeRelatorio,
   serializeRelatorios,
@@ -307,11 +308,14 @@ export class RelatorioController {
         );
       }
 
-      const buffer = await relatorioPdfService.generatePdfBuffer(relatorio, {
-        logoStoragePath: branding.logoStoragePath,
-        logoDataUrl: branding.logoDataUrl,
-        textoRodapeRelatorio: branding.textoRodapeRelatorio,
-      });
+      const buffer = await relatorioPdfService.generatePdfBuffer(
+        normalizeRelatorioForPdf(relatorio),
+        {
+          logoStoragePath: branding.logoStoragePath,
+          logoDataUrl: branding.logoDataUrl,
+          textoRodapeRelatorio: branding.textoRodapeRelatorio,
+        },
+      );
 
       const filename = `Relatório Técnico - ${relatorio.id}.pdf`;
       res.setHeader("Content-Type", "application/pdf");

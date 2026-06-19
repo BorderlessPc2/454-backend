@@ -259,7 +259,7 @@ body {
 }
 
 .horario-cell-duracao {
-  width: 72px;
+  width: 88px;
   font-size: 8px;
   text-align: right;
 }
@@ -278,7 +278,7 @@ body {
 }
 
 .total-horas-value {
-  width: 38px;
+  min-width: 48px;
   font-weight: 700;
   font-size: 8.5px;
   text-align: right;
