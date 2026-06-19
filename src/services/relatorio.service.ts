@@ -12,6 +12,7 @@ import {
   parseDateFilterWallClock,
   parseHorario,
 } from "../lib/horario-datetime.js";
+import { normalizeHorariosInput } from "../lib/normalize-horario-input.js";
 
 const MODALIDADES_SERVICO = [
   "Sem contrato - remoto",
@@ -218,9 +219,10 @@ export class RelatorioService {
       }
 
       // horários
-      if (data.horarios && data.horarios.length > 0) {
+      const horariosNormalizados = normalizeHorariosInput(data.horarios);
+      if (horariosNormalizados.length > 0) {
         const horariosCriados = await tx.relatorioHorario.createMany({
-          data: data.horarios.map(
+          data: horariosNormalizados.map(
             (horario): Prisma.RelatorioHorarioCreateManyInput => ({
               relatorioId: relatorio.id,
               horaChegada: parseHorario(data.dataVisita, horario.horaChegada),
@@ -228,7 +230,7 @@ export class RelatorioService {
             }),
           ),
         });
-        if (horariosCriados.count !== data.horarios.length) {
+        if (horariosCriados.count !== horariosNormalizados.length) {
           throw new Error("Falha ao salvar todos os vínculos de horários");
         }
       }
@@ -534,13 +536,19 @@ export class RelatorioService {
 
       // horários
       if (data.horarios !== undefined) {
-        await tx.relatorioHorario.deleteMany({
-          where: { relatorioId: id },
-        });
+        const horariosNormalizados = normalizeHorariosInput(data.horarios);
 
-        if (data.horarios.length > 0) {
+        if (Array.isArray(data.horarios) && data.horarios.length === 0) {
+          await tx.relatorioHorario.deleteMany({
+            where: { relatorioId: id },
+          });
+        } else if (horariosNormalizados.length > 0) {
+          await tx.relatorioHorario.deleteMany({
+            where: { relatorioId: id },
+          });
+
           await tx.relatorioHorario.createMany({
-            data: data.horarios.map(
+            data: horariosNormalizados.map(
               (horario): Prisma.RelatorioHorarioCreateManyInput => ({
                 relatorioId: id,
                 horaChegada: parseHorario(

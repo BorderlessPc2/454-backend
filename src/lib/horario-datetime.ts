@@ -90,8 +90,9 @@ export function parseHorario(dataVisita: string, horario: string): Date {
     throw new Error("Horario invalido (HH:mm)");
   }
 
-  if (/^\d{1,2}:\d{2}$/.test(trimmed)) {
-    return combineDataHoraWallClock(dataVisita, trimmed);
+  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(trimmed)) {
+    const hhmm = trimmed.slice(0, 5);
+    return combineDataHoraWallClock(dataVisita, hhmm);
   }
 
   if (trimmed.includes("T")) {
