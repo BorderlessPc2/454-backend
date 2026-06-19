@@ -2,6 +2,10 @@ import { existsSync } from "fs";
 import { readFile } from "fs/promises";
 import { extname, join } from "path";
 import { getUploadsDir } from "./logo-upload.js";
+import {
+  extractUploadsFilename,
+  normalizeLogoStoragePath,
+} from "./normalize-logo-path.js";
 import { resolvePublicLogoUrl } from "./public-logo-url.js";
 
 const MIME_BY_EXT: Record<string, string> = {
@@ -11,15 +15,6 @@ const MIME_BY_EXT: Record<string, string> = {
   ".webp": "image/webp",
   ".svg": "image/svg+xml",
 };
-
-function extractUploadsFilename(logoPath: string): string | null {
-  if (logoPath.startsWith("/uploads/")) {
-    return logoPath.slice("/uploads/".length);
-  }
-
-  const match = logoPath.match(/\/uploads\/([^?#]+)/);
-  return match?.[1] ?? null;
-}
 
 async function readLocalUploadAsDataUrl(filename: string): Promise<string | null> {
   const filePath = join(getUploadsDir(), filename);
@@ -54,13 +49,16 @@ async function fetchRemoteAsDataUrl(url: string): Promise<string | null> {
 export async function resolveLogoDataUrl(
   logoPath: string | null | undefined,
 ): Promise<string | null> {
-  if (!logoPath?.trim()) {
+  const normalized = normalizeLogoStoragePath(logoPath);
+  if (!normalized) {
     return null;
   }
 
-  const normalized = logoPath.trim();
-  const uploadsFilename = extractUploadsFilename(normalized);
+  if (normalized.startsWith("data:")) {
+    return normalized;
+  }
 
+  const uploadsFilename = extractUploadsFilename(normalized);
   if (uploadsFilename) {
     const local = await readLocalUploadAsDataUrl(uploadsFilename);
     if (local) {
@@ -76,7 +74,7 @@ export async function resolveLogoDataUrl(
   }
 
   const publicUrl = resolvePublicLogoUrl(normalized);
-  if (publicUrl) {
+  if (publicUrl && publicUrl !== normalized) {
     const remote = await fetchRemoteAsDataUrl(publicUrl);
     if (remote) {
       return remote;

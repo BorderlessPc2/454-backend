@@ -16,6 +16,7 @@ import type {
 } from "../types/dtos.js";
 import type { AuthRequest } from "../middlewares/auth.middleware.js";
 import { resolveScopedUnidadeIdForRequest } from "../lib/scoped-unidade.js";
+import { loadPdfBranding } from "../lib/pdf-branding.js";
 
 const relatorioService = new RelatorioService(prisma);
 const relatorioPdfService = new RelatorioPdfService();
@@ -240,11 +241,19 @@ export class RelatorioController {
       res.setHeader("Pragma", "no-cache");
       res.setHeader("Expires", "0");
 
-      const relatorio = await relatorioService.getRelatorioParaPdf(
-        id,
-        scopedUnidadeId,
-      );
-      res.json(relatorio);
+      const [relatorio, pdfConfig] = await Promise.all([
+        relatorioService.getRelatorioParaPdf(id, scopedUnidadeId),
+        loadPdfBranding(configuracaoService),
+      ]);
+
+      res.json({
+        ...relatorio,
+        pdfConfig: {
+          logoUrl: pdfConfig.logoUrl,
+          logoDataUrl: pdfConfig.logoDataUrl,
+          textoRodapeRelatorio: pdfConfig.textoRodapeRelatorio,
+        },
+      });
     } catch (error) {
       if (
         error instanceof Error &&
@@ -278,21 +287,23 @@ export class RelatorioController {
         return;
       }
 
-      const relatorio = await relatorioService.getRelatorioParaPdf(
-        id,
-        scopedUnidadeId,
-      );
+      const [relatorio, branding] = await Promise.all([
+        relatorioService.getRelatorioParaPdf(id, scopedUnidadeId),
+        loadPdfBranding(configuracaoService),
+      ]);
 
-      const config = await configuracaoService.get();
-      const pdfConfig = {
-        logoStoragePath: config?.logoUrl ?? null,
-        textoRodapeRelatorio: config?.textoRodapeRelatorio ?? null,
-      };
+      if (branding.logoStoragePath && !branding.logoDataUrl) {
+        console.warn(
+          "[pdf] Logo configurado mas não foi possível carregar para o PDF:",
+          branding.logoStoragePath,
+        );
+      }
 
-      const buffer = await relatorioPdfService.generatePdfBuffer(
-        relatorio,
-        pdfConfig,
-      );
+      const buffer = await relatorioPdfService.generatePdfBuffer(relatorio, {
+        logoStoragePath: branding.logoStoragePath,
+        logoDataUrl: branding.logoDataUrl,
+        textoRodapeRelatorio: branding.textoRodapeRelatorio,
+      });
 
       const filename = `Relatório Técnico - ${relatorio.id}.pdf`;
       res.setHeader("Content-Type", "application/pdf");

@@ -445,8 +445,6 @@ export class RelatorioService {
       data: { impresso: true },
     });
 
-    console.log('Dados enviados para o Frontend gerar PDF:', id);
-
     return { ...relatorio, impresso: true };
   }
 

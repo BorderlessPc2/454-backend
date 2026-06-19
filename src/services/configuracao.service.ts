@@ -1,5 +1,6 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import { writeSystemLogoFile } from "../lib/logo-upload.js";
+import { normalizeLogoStoragePath } from "../lib/normalize-logo-path.js";
 
 export type ConfiguracaoPatchInput = {
   dataInicio?: Date;
@@ -124,7 +125,9 @@ export class ConfiguracaoService {
           ...(hasRodape
             ? { textoRodapeRelatorio: opts.textoRodapeRelatorio }
             : {}),
-          ...(hasLogo ? { logoUrl: opts.logoUrl } : {}),
+          ...(hasLogo
+            ? { logoUrl: normalizeLogoStoragePath(opts.logoUrl) }
+            : {}),
         },
       });
       this.invalidateConfigCache();
@@ -140,7 +143,9 @@ export class ConfiguracaoService {
         ...(hasRodape
           ? { textoRodapeRelatorio: opts.textoRodapeRelatorio }
           : {}),
-        ...(hasLogo ? { logoUrl: opts.logoUrl } : {}),
+        ...(hasLogo
+          ? { logoUrl: normalizeLogoStoragePath(opts.logoUrl) }
+          : {}),
       },
     });
     this.invalidateConfigCache();

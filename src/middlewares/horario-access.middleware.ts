@@ -8,7 +8,6 @@ export const HORARIO_ACCESS_DENIED_MESSAGE =
 
 /**
  * Bloqueia técnicos fora do horário configurado (ADMIN sempre passa).
- * Complementa a checagem feita apenas no login.
  */
 export async function horarioAccessMiddleware(
   req: AuthRequest,

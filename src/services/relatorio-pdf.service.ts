@@ -47,6 +47,8 @@ export type RelatorioPdfData = {
 export type PdfConfig = {
   /** Caminho salvo no banco (ex.: /uploads/system-logo.png). */
   logoStoragePath: string | null;
+  /** Quando já resolvido (ex.: pelo controller), evita nova leitura/fetch. */
+  logoDataUrl?: string | null;
   textoRodapeRelatorio: string | null;
 };
 
@@ -298,7 +300,10 @@ export class RelatorioPdfService {
     relatorio: RelatorioPdfData,
     config: PdfConfig,
   ): Promise<Buffer> {
-    const logoDataUrl = await resolveLogoDataUrl(config.logoStoragePath);
+    const logoDataUrl =
+      config.logoDataUrl !== undefined
+        ? config.logoDataUrl
+        : await resolveLogoDataUrl(config.logoStoragePath);
     const html = this.buildHtml(relatorio, config, logoDataUrl);
 
     let browser: Awaited<ReturnType<typeof launchChromiumBrowser>> | undefined;
