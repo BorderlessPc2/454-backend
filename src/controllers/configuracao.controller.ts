@@ -1,9 +1,6 @@
 import type { Request, Response } from "express";
-import { ConfiguracaoService } from "../services/configuracao.service.js";
-import { prisma } from "../lib/prisma.js";
+import { configuracaoService } from "../lib/configuracao-service.singleton.js";
 import { resolvePublicLogoUrl } from "../lib/public-logo-url.js";
-
-const configuracaoService = new ConfiguracaoService(prisma);
 
 export class ConfiguracaoController {
   static async findPdfSettings(_req: Request, res: Response): Promise<void> {

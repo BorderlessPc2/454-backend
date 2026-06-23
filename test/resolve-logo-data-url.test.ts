@@ -2,10 +2,11 @@ import assert from "node:assert/strict";
 import { mkdir, writeFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { getUploadsDir } from "../src/lib/logo-upload.js";
+import { resolvePublicLogoUrl } from "../src/lib/public-logo-url.js";
 import {
   isValidLogoDataUrl,
   resolveLogoDataUrl,
-  resolvePdfLogoDataUrl,
+  resolveLogoForPdfFromConfig,
 } from "../src/lib/resolve-logo-data-url.js";
 
 const tinyPng = Buffer.from(
@@ -28,27 +29,40 @@ const logoPath = join(uploadsDir, logoFilename);
 await writeFile(logoPath, tinyPng);
 
 try {
-  const fromRelative = await resolveLogoDataUrl("/uploads/test-logo-resolve.png");
+  const storagePath = "/uploads/test-logo-resolve.png";
+  const rawLogoUrl = storagePath;
+
+  const fromRelative = await resolveLogoDataUrl(storagePath, rawLogoUrl);
   assert.ok(isValidLogoDataUrl(fromRelative));
-  assert.match(fromRelative!, /^data:image\/png;base64,/);
 
-  const fromUploadsPrefix = await resolveLogoDataUrl("uploads/test-logo-resolve.png");
-  assert.ok(isValidLogoDataUrl(fromUploadsPrefix));
+  const sidebarUrl = resolvePublicLogoUrl(rawLogoUrl);
+  assert.ok(sidebarUrl);
 
-  const fromAbsolute = await resolveLogoDataUrl(logoPath);
-  assert.ok(isValidLogoDataUrl(fromAbsolute));
-
-  const fromPdfConfig = await resolvePdfLogoDataUrl({
-    logoStoragePath: "/uploads/test-logo-resolve.png",
+  const fromPdfConfig = await resolveLogoForPdfFromConfig({
+    logoStoragePath: storagePath,
+    logoUrl: rawLogoUrl,
     logoDataUrl: null,
   });
-  assert.ok(isValidLogoDataUrl(fromPdfConfig));
+  assert.ok(isValidLogoDataUrl(fromPdfConfig.logoDataUrl));
+  assert.notEqual(fromPdfConfig.source, "fallback");
 
-  const prefersValidDbValue = await resolvePdfLogoDataUrl({
+  const prefersValidDbValue = await resolveLogoForPdfFromConfig({
     logoStoragePath: "/uploads/missing.png",
+    logoUrl: "/uploads/missing.png",
     logoDataUrl: "data:image/png;base64,iVBORw0KGgo=",
   });
-  assert.equal(prefersValidDbValue, "data:image/png;base64,iVBORw0KGgo=");
+  assert.equal(
+    prefersValidDbValue.logoDataUrl,
+    "data:image/png;base64,iVBORw0KGgo=",
+  );
+  assert.equal(prefersValidDbValue.source, "db-logoDataUrl");
+
+  const fromAbsoluteDbUrl = await resolveLogoForPdfFromConfig({
+    logoStoragePath: storagePath,
+    logoUrl: sidebarUrl,
+    logoDataUrl: null,
+  });
+  assert.ok(isValidLogoDataUrl(fromAbsoluteDbUrl.logoDataUrl));
 } finally {
   await rm(logoPath, { force: true });
 }

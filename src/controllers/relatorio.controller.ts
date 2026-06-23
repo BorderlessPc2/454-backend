@@ -7,7 +7,7 @@ import {
   RelatorioPdfService,
   RelatorioPdfUnavailableError,
 } from "../services/relatorio-pdf.service.js";
-import { ConfiguracaoService } from "../services/configuracao.service.js";
+import { configuracaoService } from "../lib/configuracao-service.singleton.js";
 import { prisma } from "../lib/prisma.js";
 import type {
   CreateRelatorioDTO,
@@ -22,10 +22,10 @@ import {
   serializeRelatorio,
   serializeRelatorios,
 } from "../lib/serialize-relatorio.js";
+import { pdfLogoDebug } from "../lib/pdf-logo-debug.js";
 
 const relatorioService = new RelatorioService(prisma);
 const relatorioPdfService = new RelatorioPdfService();
-const configuracaoService = new ConfiguracaoService(prisma);
 
 export class RelatorioController {
   static async create(req: AuthRequest, res: Response): Promise<void> {
@@ -305,13 +305,26 @@ export class RelatorioController {
         console.warn(
           "[pdf] Logo configurado mas não foi possível carregar para o PDF:",
           branding.logoStoragePath,
+          "rawLogoUrl:",
+          branding.rawLogoUrl,
+          "publicUrl:",
+          branding.logoUrl,
         );
       }
+
+      pdfLogoDebug("downloadPdfFile branding", {
+        logoStoragePath: branding.logoStoragePath,
+        rawLogoUrl: branding.rawLogoUrl,
+        publicLogoUrl: branding.logoUrl,
+        logoDataUrlPresent: Boolean(branding.logoDataUrl),
+        logoDataUrlLength: branding.logoDataUrl?.length ?? 0,
+      });
 
       const buffer = await relatorioPdfService.generatePdfBuffer(
         normalizeRelatorioForPdf(relatorio),
         {
           logoStoragePath: branding.logoStoragePath,
+          logoUrl: branding.rawLogoUrl,
           logoDataUrl: branding.logoDataUrl,
           textoRodapeRelatorio: branding.textoRodapeRelatorio,
         },

@@ -2,7 +2,11 @@ import { Prisma, PrismaClient } from "@prisma/client";
 import { writeSystemLogoFile, buildLogoDataUrl } from "../lib/logo-upload.js";
 import { normalizeLogoStoragePath } from "../lib/normalize-logo-path.js";
 import { resolvePublicLogoUrl } from "../lib/public-logo-url.js";
-import { resolveLogoDataUrl, resolvePdfLogoDataUrl, isValidLogoDataUrl } from "../lib/resolve-logo-data-url.js";
+import {
+  resolveLogoDataUrl,
+  resolveLogoForPdfFromConfig,
+  isValidLogoDataUrl,
+} from "../lib/resolve-logo-data-url.js";
 
 export type ConfiguracaoPatchInput = {
   dataInicio?: Date;
@@ -18,28 +22,32 @@ export type LogoUploadFile = {
 };
 
 export type PdfBranding = {
+  /** Caminho normalizado (/uploads/...). */
   logoStoragePath: string | null;
+  /** Valor bruto de `logo_url` no banco (mesma fonte da sidebar). */
+  rawLogoUrl: string | null;
+  /** URL pública retornada por GET /configuracoes/pdf. */
   logoUrl: string | null;
   logoDataUrl: string | null;
   textoRodapeRelatorio: string | null;
 };
 
+let sharedConfigCache: {
+  data: Awaited<ReturnType<ConfiguracaoService["fetchConfig"]>> | null;
+  expiresAt: number;
+} | null = null;
+
+const CONFIG_CACHE_TTL_MS = 60_000;
+
 function isValidDate(value: Date): boolean {
   return !Number.isNaN(value.getTime());
 }
 
-const CONFIG_CACHE_TTL_MS = 60_000;
-
 export class ConfiguracaoService {
-  private configCache: {
-    data: Awaited<ReturnType<ConfiguracaoService["fetchConfig"]>> | null;
-    expiresAt: number;
-  } | null = null;
-
   constructor(private prisma: PrismaClient) {}
 
   private invalidateConfigCache(): void {
-    this.configCache = null;
+    sharedConfigCache = null;
   }
 
   private async fetchConfig() {
@@ -68,12 +76,12 @@ export class ConfiguracaoService {
 
   async get() {
     const now = Date.now();
-    if (this.configCache && this.configCache.expiresAt > now) {
-      return this.configCache.data;
+    if (sharedConfigCache && sharedConfigCache.expiresAt > now) {
+      return sharedConfigCache.data;
     }
 
     const data = await this.fetchConfig();
-    this.configCache = { data, expiresAt: now + CONFIG_CACHE_TTL_MS };
+    sharedConfigCache = { data, expiresAt: now + CONFIG_CACHE_TTL_MS };
     return data;
   }
 
@@ -99,7 +107,7 @@ export class ConfiguracaoService {
       };
     }
 
-    const logoDataUrl = await resolveLogoDataUrl(normalizedPath);
+    const logoDataUrl = await resolveLogoDataUrl(normalizedPath, logoUrl);
     return {
       logoUrl: normalizedPath,
       logoDataUrl: isValidLogoDataUrl(logoDataUrl) ? logoDataUrl.trim() : null,
@@ -236,20 +244,26 @@ export class ConfiguracaoService {
     return updated;
   }
 
+  /** Branding para PDF — sempre lê config fresca do banco (sem cache). */
   async loadPdfBranding(): Promise<PdfBranding> {
-    const config = await this.get();
-    const logoStoragePath = normalizeLogoStoragePath(config?.logoUrl);
-    const logoDataUrl = await resolvePdfLogoDataUrl({
+    const config = await this.fetchConfig();
+    const rawLogoUrl = config?.logoUrl ?? null;
+    const logoStoragePath = normalizeLogoStoragePath(rawLogoUrl);
+    const resolved = await resolveLogoForPdfFromConfig({
       logoDataUrl: config?.logoDataUrl,
       logoStoragePath,
-      logoUrl: config?.logoUrl,
+      logoUrl: rawLogoUrl,
     });
 
-    if (logoDataUrl && config?.id && config.logoDataUrl !== logoDataUrl) {
+    if (
+      resolved.logoDataUrl &&
+      config?.id &&
+      config.logoDataUrl !== resolved.logoDataUrl
+    ) {
       await this.prisma.configuracao
         .update({
           where: { id: config.id },
-          data: { logoDataUrl },
+          data: { logoDataUrl: resolved.logoDataUrl },
         })
         .catch(() => undefined);
       this.invalidateConfigCache();
@@ -257,8 +271,9 @@ export class ConfiguracaoService {
 
     return {
       logoStoragePath,
-      logoUrl: resolvePublicLogoUrl(logoStoragePath),
-      logoDataUrl,
+      rawLogoUrl,
+      logoUrl: resolvePublicLogoUrl(rawLogoUrl),
+      logoDataUrl: resolved.logoDataUrl,
       textoRodapeRelatorio: config?.textoRodapeRelatorio ?? null,
     };
   }

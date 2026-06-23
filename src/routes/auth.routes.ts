@@ -6,7 +6,7 @@ import {
 } from "express";
 import rateLimit from "express-rate-limit";
 import { AuthController } from "../controllers/auth.controller.js";
-import { ConfiguracaoService } from "../services/configuracao.service.js";
+import { configuracaoService } from "../lib/configuracao-service.singleton.js";
 import { prisma } from "../lib/prisma.js";
 import { horarioMiddleware } from "../middlewares/horario.middleware.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
@@ -14,7 +14,6 @@ import { horarioAccessMiddleware } from "../middlewares/horario-access.middlewar
 import { roleMiddleware } from "../middlewares/role.middleware.js";
 
 const router = Router();
-const configuracaoService = new ConfiguracaoService(prisma);
 
 const loginRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

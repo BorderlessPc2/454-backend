@@ -5,7 +5,7 @@ import {
 } from "../lib/chromium-launcher.js";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { escapeHtml, escapeHtmlAttribute } from "../lib/escape-html.js";
+import { escapeHtml } from "../lib/escape-html.js";
 import {
   buildHorarioTableRows,
   calcularTotalHoras,
@@ -15,7 +15,11 @@ import {
   type RelatorioPdfFooterConfig,
 } from "../lib/relatorio-pdf-footer.js";
 import { formatDateWallClock } from "../lib/horario-datetime.js";
-import { resolvePdfLogoDataUrl } from "../lib/resolve-logo-data-url.js";
+import { pdfLogoDebug } from "../lib/pdf-logo-debug.js";
+import {
+  isValidLogoDataUrl,
+  resolveLogoForPdfFromConfig,
+} from "../lib/resolve-logo-data-url.js";
 import { sanitizeRichTextHtml } from "../lib/sanitize-rich-text.js";
 
 export type RelatorioPdfData = {
@@ -46,8 +50,10 @@ export type RelatorioPdfData = {
 };
 
 export type PdfConfig = {
-  /** Caminho salvo no banco (ex.: /uploads/system-logo.png). */
+  /** Caminho normalizado (/uploads/...). */
   logoStoragePath: string | null;
+  /** Valor bruto de logo_url no banco — mesma fonte da sidebar. */
+  logoUrl?: string | null;
   /** Quando já resolvido (ex.: pelo controller), evita nova leitura/fetch. */
   logoDataUrl?: string | null;
   textoRodapeRelatorio: string | null;
@@ -188,11 +194,18 @@ export class RelatorioPdfService {
     const horariosHtml = renderHorariosTable(relatorio.horarios);
 
     const headerLogoBlock = logoDataUrl
-      ? `<img src="${escapeHtmlAttribute(logoDataUrl)}" alt="Logo" class="header-logo" />`
+      ? `<img src="${logoDataUrl}" alt="Logo" class="header-logo" />`
       : `<span class="logo-text">Linq</span>`;
     const footerLogoImg = logoDataUrl
-      ? `<img src="${escapeHtmlAttribute(logoDataUrl)}" alt="Logo" class="footer-logo" />`
+      ? `<img src="${logoDataUrl}" alt="Logo" class="footer-logo" />`
       : "";
+
+    pdfLogoDebug("buildHtml logo", {
+      usesLogo: Boolean(logoDataUrl),
+      usesFallback: !logoDataUrl,
+      srcPrefix: logoDataUrl?.slice(0, 32) ?? null,
+      srcLength: logoDataUrl?.length ?? 0,
+    });
 
     return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -297,10 +310,35 @@ export class RelatorioPdfService {
     relatorio: RelatorioPdfData,
     config: PdfConfig,
   ): Promise<Buffer> {
-    const logoDataUrl = await resolvePdfLogoDataUrl({
-      logoDataUrl: config.logoDataUrl,
+    pdfLogoDebug("generatePdfBuffer config", {
       logoStoragePath: config.logoStoragePath,
+      logoUrl: config.logoUrl ?? null,
+      logoDataUrlPresent: Boolean(config.logoDataUrl),
+      logoDataUrlLength: config.logoDataUrl?.length ?? 0,
+      logoDataUrlValid: isValidLogoDataUrl(config.logoDataUrl),
     });
+
+    let logoDataUrl: string | null = null;
+    let logoSource = "fallback";
+
+    if (isValidLogoDataUrl(config.logoDataUrl)) {
+      logoDataUrl = config.logoDataUrl.trim();
+      logoSource = "pre-resolved";
+    } else {
+      const resolved = await resolveLogoForPdfFromConfig({
+        logoDataUrl: config.logoDataUrl,
+        logoStoragePath: config.logoStoragePath,
+        logoUrl: config.logoUrl,
+      });
+      logoDataUrl = resolved.logoDataUrl;
+      logoSource = resolved.source;
+    }
+
+    pdfLogoDebug("generatePdfBuffer resolved", {
+      logoSource,
+      logoDataUrlLength: logoDataUrl?.length ?? 0,
+    });
+
     const html = this.buildHtml(relatorio, config, logoDataUrl);
 
     let browser: Awaited<ReturnType<typeof launchChromiumBrowser>> | undefined;
