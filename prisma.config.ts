@@ -9,6 +9,11 @@ const rootDir = dirname(fileURLToPath(import.meta.url));
 config({ path: resolve(rootDir, ".env") });
 
 const databaseUrl = process.env["DATABASE_URL"];
+/** Migrate/introspect: conexão direta (Neon DIRECT_URL ou DATABASE_URL sem pooler). */
+const migrateUrl =
+	process.env["DIRECT_URL"]?.trim() ||
+	process.env["MIGRATE_DATABASE_URL"]?.trim() ||
+	databaseUrl;
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -16,6 +21,6 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: databaseUrl,
+    url: migrateUrl,
   },
 });

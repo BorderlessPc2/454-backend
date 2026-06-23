@@ -10,20 +10,36 @@ if [ -z "${DATABASE_URL}" ]; then
   exit 1
 fi
 
-# Render: host interno "dpg-xxx-a" costuma falhar no Docker sem DB linkado — expandir para .oregon-postgres.render.com
+# Render: expande host interno curto dpg-xxx-a → endpoint Oregon
 export DATABASE_URL="$(node ./scripts/normalize-render-database-url.mjs)"
+RUNTIME_DATABASE_URL="${DATABASE_URL}"
 
-echo "[startup] ✅ DATABASE_URL encontrada"
+echo "[startup] ✅ DATABASE_URL (runtime) configurada"
+echo "[startup] Resolvendo URL de migrate (conexão direta, sem pooler)..."
+
+MIGRATE_DATABASE_URL="$(node ./scripts/resolve-migrate-database-url.mjs)"
+
 echo "[startup] Executando Prisma migrate deploy..."
 
-if ! npx prisma migrate deploy; then
+# P1002: aumenta timeout do advisory lock em deploys concorrentes / cold start Neon
+export PRISMA_MIGRATE_ADVISORY_LOCK_TIMEOUT="${PRISMA_MIGRATE_ADVISORY_LOCK_TIMEOUT:-60000}"
+
+if ! DATABASE_URL="${MIGRATE_DATABASE_URL}" npx prisma migrate deploy; then
   echo "[startup] ❌ prisma migrate deploy falhou — abortando."
-  echo "[startup] Dica Render (P1001): hostname só 'dpg-xxx-a' (internal) pode falhar se DB e Web não estão na mesma rede/workspace."
-  echo "[startup] Use na env DATABASE_URL a External Database URL do Postgres e acrescente ?sslmode=require no final."
-  echo "[startup] Confira também se o Postgres free não está suspenso (abra o DB no painel para ‘acordar’)."
+  echo "[startup]"
+  echo "[startup] Neon + pooler (P1002 advisory lock):"
+  echo "[startup]   • DATABASE_URL no Render = connection string COM -pooler (app em runtime)"
+  echo "[startup]   • Adicione DIRECT_URL = connection string SEM -pooler (Neon Console → Connect → Direct)"
+  echo "[startup]   • Ou deixe o script converter automaticamente (já tentado acima)"
+  echo "[startup]"
+  echo "[startup] Render Postgres (P1001):"
+  echo "[startup]   • Use External Database URL com ?sslmode=require"
+  echo "[startup]   • Confira se o Postgres free não está suspenso"
   exit 1
 fi
+
 echo "[startup] ✅ Migrations aplicadas com sucesso."
 
+export DATABASE_URL="${RUNTIME_DATABASE_URL}"
 echo "[startup] ✅ Iniciando servidor Node na porta ${PORT:-3000}..."
 exec node dist/server.js

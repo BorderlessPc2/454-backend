@@ -25,6 +25,12 @@ try {
 			"[normalize-db-url] Internal host curto detectado → usando endpoint Oregon + SSL.\n",
 		);
 	}
+
+	// Neon pooler: Prisma Client em runtime — recomendado pgbouncer=true
+	if (h.includes("-pooler") && !url.searchParams.has("pgbouncer")) {
+		url.searchParams.set("pgbouncer", "true");
+	}
+
 	process.stdout.write(url.toString());
 } catch {
 	process.stdout.write(raw);
