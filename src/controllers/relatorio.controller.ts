@@ -115,7 +115,12 @@ export class RelatorioController {
       }
       const { scopedUnidadeId } = scope;
 
-      const id = parseInt(req.params["id"] ?? "0");
+      const id = parseInt(req.params["id"] ?? "0", 10);
+      if (Number.isNaN(id) || id <= 0) {
+        res.status(404).json({ error: "Relatório não encontrado" });
+        return;
+      }
+
       const relatorio = await relatorioService.findById(id, scopedUnidadeId);
 
       if (!relatorio) {
@@ -125,7 +130,11 @@ export class RelatorioController {
 
       res.json(serializeRelatorio(relatorio));
     } catch (error) {
-      res.status(500).json({ error: "Erro ao buscar relatório" });
+      console.error("[relatorios.findById]", error);
+      res.status(500).json({
+        error:
+          error instanceof Error ? error.message : "Erro ao buscar relatório",
+      });
     }
   }
 
