@@ -1,10 +1,18 @@
 import { Router } from "express";
 import { RelatorioController } from "../controllers/relatorio.controller.js";
+import { RelatorioCalendarioController } from "../controllers/relatorio-calendario.controller.js";
 import { protectedMiddleware } from "../middlewares/protected.middleware.js";
 
 const router = Router();
 
 router.use(...protectedMiddleware);
+
+router.get("/calendario", RelatorioCalendarioController.listCalendario);
+router.post("/agendamento", RelatorioCalendarioController.createAgendamento);
+router.patch(
+  "/:id/data-visita",
+  RelatorioCalendarioController.reagendarDataVisita,
+);
 
 router.post("/", RelatorioController.create);
 router.get("/", RelatorioController.findAll);

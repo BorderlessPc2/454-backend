@@ -21,6 +21,12 @@ enum AuditAction {
   DELETE
 }
 
+enum RelatorioStatus {
+  AGENDADO
+  FINALIZADO
+  CANCELADO
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   username  String   @unique
@@ -103,9 +109,10 @@ model Contrato {
   dataInicio        DateTime  @map("data_inicio")
   dataFim           DateTime? @map("data_fim")
   valorMensal       Decimal   @map("valor_mensal") @db.Decimal(10, 2)
-  descricaoServicos String    @map("descricao_servicos") @db.Text
-  condicoes         String?   @db.Text
-  ativo             Boolean   @default(true)
+  descricaoServicos         String    @map("descricao_servicos") @db.Text
+  condicoes                 String?   @db.Text
+  visitasMensaisEsperadas   Int?      @map("visitas_mensais_esperadas")
+  ativo                     Boolean   @default(true)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
@@ -161,9 +168,10 @@ model Relatorio {
   criadoPorId       Int      @map("criado_por_id")
   dataVisita        DateTime @map("data_visita")
   modalidadeServico String?  @map("modalidade_servico")
-  observacoes       String?  @db.Text
-  impresso          Boolean  @default(false)
-  createdAt         DateTime @default(now())
+  observacoes       String?         @db.Text
+  status            RelatorioStatus @default(FINALIZADO)
+  impresso          Boolean         @default(false)
+  createdAt         DateTime        @default(now())
   updatedAt         DateTime @updatedAt
 
   cliente   Cliente         @relation(fields: [clienteId], references: [id])

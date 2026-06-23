@@ -9,6 +9,7 @@ import authRouter from "./routes/auth.routes.js";
 import usersRouter from "./routes/users.routes.js";
 import clientesRouter from "./routes/clientes.routes.js";
 import relatoriosRouter from "./routes/relatorios.routes.js";
+import relatorioGerencialRouter from "./routes/relatorio-gerencial.routes.js";
 import checklistsRouter from "./routes/checklists.routes.js";
 import setoresRouter from "./routes/setores.routes.js";
 import ramosRouter from "./routes/ramos.routes.js";
@@ -132,6 +133,7 @@ app.get("/health/db", async (_req: Request, res: Response) => {
 app.use("/auth", authRouter);
 app.use("/users", usersRouter);
 app.use("/clientes", clientesRouter);
+app.use("/relatorios/gerencial", relatorioGerencialRouter);
 app.use("/relatorios", relatoriosRouter);
 app.use("/checklists", checklistsRouter);
 app.use("/setores", setoresRouter);
