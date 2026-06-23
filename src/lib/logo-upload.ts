@@ -4,6 +4,12 @@ import path from "path";
 const ALLOWED_EXT = new Set([".png", ".jpg", ".jpeg", ".webp", ".svg"]);
 
 export function getUploadsDir(): string {
+  const configured = process.env["UPLOADS_DIR"]?.trim();
+  if (configured) {
+    return path.isAbsolute(configured)
+      ? configured
+      : path.join(process.cwd(), configured);
+  }
   return path.join(process.cwd(), "uploads");
 }
 

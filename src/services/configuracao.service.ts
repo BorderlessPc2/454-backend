@@ -2,7 +2,7 @@ import { Prisma, PrismaClient } from "@prisma/client";
 import { writeSystemLogoFile, buildLogoDataUrl } from "../lib/logo-upload.js";
 import { normalizeLogoStoragePath } from "../lib/normalize-logo-path.js";
 import { resolvePublicLogoUrl } from "../lib/public-logo-url.js";
-import { resolveLogoDataUrl } from "../lib/resolve-logo-data-url.js";
+import { resolveLogoDataUrl, resolvePdfLogoDataUrl, isValidLogoDataUrl } from "../lib/resolve-logo-data-url.js";
 
 export type ConfiguracaoPatchInput = {
   dataInicio?: Date;
@@ -77,6 +77,35 @@ export class ConfiguracaoService {
     return data;
   }
 
+  private async resolveLogoDataUrlForStorage(
+    logoUrl: string | null | undefined,
+    existingLogoUrl: string | null | undefined,
+    existingLogoDataUrl: string | null | undefined,
+  ): Promise<{ logoUrl: string | null; logoDataUrl: string | null }> {
+    const normalizedPath = normalizeLogoStoragePath(logoUrl);
+    const existingNormalizedPath = normalizeLogoStoragePath(existingLogoUrl);
+
+    if (!normalizedPath) {
+      return { logoUrl: null, logoDataUrl: null };
+    }
+
+    if (
+      normalizedPath === existingNormalizedPath &&
+      isValidLogoDataUrl(existingLogoDataUrl)
+    ) {
+      return {
+        logoUrl: normalizedPath,
+        logoDataUrl: existingLogoDataUrl.trim(),
+      };
+    }
+
+    const logoDataUrl = await resolveLogoDataUrl(normalizedPath);
+    return {
+      logoUrl: normalizedPath,
+      logoDataUrl: isValidLogoDataUrl(logoDataUrl) ? logoDataUrl.trim() : null,
+    };
+  }
+
   private defaultHorarioDoDia(): { dataInicio: Date; dataFim: Date } {
     const dataInicio = new Date();
     dataInicio.setHours(8, 0, 0, 0);
@@ -127,6 +156,19 @@ export class ConfiguracaoService {
       const horario = hasHorario
         ? { dataInicio: opts.dataInicio!, dataFim: opts.dataFim! }
         : this.defaultHorarioDoDia();
+
+      let logoPatch: { logoUrl: string | null; logoDataUrl: string | null } = {
+        logoUrl: null,
+        logoDataUrl: null,
+      };
+      if (hasLogo) {
+        logoPatch = await this.resolveLogoDataUrlForStorage(
+          opts.logoUrl,
+          null,
+          null,
+        );
+      }
+
       const created = await this.prisma.configuracao.create({
         data: {
           id: 1,
@@ -135,16 +177,21 @@ export class ConfiguracaoService {
           ...(hasRodape
             ? { textoRodapeRelatorio: opts.textoRodapeRelatorio }
             : {}),
-          ...(hasLogo
-            ? {
-                logoUrl: normalizeLogoStoragePath(opts.logoUrl),
-                logoDataUrl: null,
-              }
-            : {}),
+          ...(hasLogo ? logoPatch : {}),
         },
       });
       this.invalidateConfigCache();
       return created;
+    }
+
+    let logoPatch: { logoUrl?: string | null; logoDataUrl?: string | null } =
+      {};
+    if (hasLogo) {
+      logoPatch = await this.resolveLogoDataUrlForStorage(
+        opts.logoUrl,
+        existing.logoUrl,
+        existing.logoDataUrl,
+      );
     }
 
     const updated = await this.prisma.configuracao.update({
@@ -156,12 +203,7 @@ export class ConfiguracaoService {
         ...(hasRodape
           ? { textoRodapeRelatorio: opts.textoRodapeRelatorio }
           : {}),
-        ...(hasLogo
-          ? {
-              logoUrl: normalizeLogoStoragePath(opts.logoUrl),
-              logoDataUrl: null,
-            }
-          : {}),
+        ...logoPatch,
       },
     });
     this.invalidateConfigCache();
@@ -197,19 +239,20 @@ export class ConfiguracaoService {
   async loadPdfBranding(): Promise<PdfBranding> {
     const config = await this.get();
     const logoStoragePath = normalizeLogoStoragePath(config?.logoUrl);
-    let logoDataUrl = config?.logoDataUrl ?? null;
+    const logoDataUrl = await resolvePdfLogoDataUrl({
+      logoDataUrl: config?.logoDataUrl,
+      logoStoragePath,
+      logoUrl: config?.logoUrl,
+    });
 
-    if (!logoDataUrl) {
-      logoDataUrl = await resolveLogoDataUrl(logoStoragePath);
-      if (logoDataUrl && config?.id) {
-        await this.prisma.configuracao
-          .update({
-            where: { id: config.id },
-            data: { logoDataUrl },
-          })
-          .catch(() => undefined);
-        this.invalidateConfigCache();
-      }
+    if (logoDataUrl && config?.id && config.logoDataUrl !== logoDataUrl) {
+      await this.prisma.configuracao
+        .update({
+          where: { id: config.id },
+          data: { logoDataUrl },
+        })
+        .catch(() => undefined);
+      this.invalidateConfigCache();
     }
 
     return {

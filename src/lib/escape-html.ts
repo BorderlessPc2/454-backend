@@ -6,3 +6,8 @@ export function escapeHtml(text: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
+
+/** Escapa valor de atributo HTML (ex.: src de img). */
+export function escapeHtmlAttribute(text: string): string {
+  return escapeHtml(text);
+}

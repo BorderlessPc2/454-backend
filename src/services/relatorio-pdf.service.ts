@@ -5,7 +5,7 @@ import {
 } from "../lib/chromium-launcher.js";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { escapeHtml } from "../lib/escape-html.js";
+import { escapeHtml, escapeHtmlAttribute } from "../lib/escape-html.js";
 import {
   buildHorarioTableRows,
   calcularTotalHoras,
@@ -15,7 +15,7 @@ import {
   type RelatorioPdfFooterConfig,
 } from "../lib/relatorio-pdf-footer.js";
 import { formatDateWallClock } from "../lib/horario-datetime.js";
-import { resolveLogoDataUrl } from "../lib/resolve-logo-data-url.js";
+import { resolvePdfLogoDataUrl } from "../lib/resolve-logo-data-url.js";
 import { sanitizeRichTextHtml } from "../lib/sanitize-rich-text.js";
 
 export type RelatorioPdfData = {
@@ -188,10 +188,10 @@ export class RelatorioPdfService {
     const horariosHtml = renderHorariosTable(relatorio.horarios);
 
     const headerLogoBlock = logoDataUrl
-      ? `<img src="${logoDataUrl}" alt="Logo" class="header-logo" />`
+      ? `<img src="${escapeHtmlAttribute(logoDataUrl)}" alt="Logo" class="header-logo" />`
       : `<span class="logo-text">Linq</span>`;
     const footerLogoImg = logoDataUrl
-      ? `<img src="${logoDataUrl}" alt="Logo" class="footer-logo" />`
+      ? `<img src="${escapeHtmlAttribute(logoDataUrl)}" alt="Logo" class="footer-logo" />`
       : "";
 
     return `<!DOCTYPE html>
@@ -297,11 +297,10 @@ export class RelatorioPdfService {
     relatorio: RelatorioPdfData,
     config: PdfConfig,
   ): Promise<Buffer> {
-    const logoDataUrl =
-      config.logoDataUrl ??
-      (config.logoStoragePath
-        ? await resolveLogoDataUrl(config.logoStoragePath)
-        : null);
+    const logoDataUrl = await resolvePdfLogoDataUrl({
+      logoDataUrl: config.logoDataUrl,
+      logoStoragePath: config.logoStoragePath,
+    });
     const html = this.buildHtml(relatorio, config, logoDataUrl);
 
     let browser: Awaited<ReturnType<typeof launchChromiumBrowser>> | undefined;
