@@ -2,6 +2,8 @@ import "dotenv/config";
 import app from "./app.js";
 import { assertJwtConfiguredAtStartup } from "./lib/jwt-secret.js";
 import { prisma } from "./lib/prisma.js";
+import { restoreSystemLogoFromDatabase } from "./lib/restore-system-logo.js";
+import { getUploadsDir } from "./lib/logo-upload.js";
 
 /** Falha rápido em produção com JWT_SECRET inválido (antes do listen). */
 assertJwtConfiguredAtStartup();
@@ -16,8 +18,11 @@ process.on("uncaughtException", (error) => {
   console.error("[UNCAUGHT_EXCEPTION]", error);
 });
 
+await restoreSystemLogoFromDatabase(prisma);
+
 const server = app.listen(port, () => {
   console.log(`API on http://localhost:${port}`);
+  console.log(`[uploads] Diretório: ${getUploadsDir()}`);
 });
 
 async function gracefulShutdown(signal: string): Promise<void> {

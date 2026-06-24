@@ -28,7 +28,19 @@ router.get("/", ConfiguracaoController.findAll);
 
 router.put("/", ConfiguracaoController.upsert);
 
-router.post("/logo", logoUploadMiddleware, ConfiguracaoController.uploadLogo);
+router.post("/logo", (req, res, next) => {
+  logoUploadMiddleware(req, res, (err: unknown) => {
+    if (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Erro ao processar upload da logo";
+      res.status(400).json({ error: message });
+      return;
+    }
+    void ConfiguracaoController.uploadLogo(req, res);
+  });
+});
 
 
 

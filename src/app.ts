@@ -1,5 +1,4 @@
 import express, { type Request, type Response, type NextFunction } from "express";
-import path from "path";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
@@ -13,7 +12,9 @@ import checklistsRouter from "./routes/checklists.routes.js";
 import setoresRouter from "./routes/setores.routes.js";
 import ramosRouter from "./routes/ramos.routes.js";
 import configuracoesRouter from "./routes/configuracoes.routes.js";
+import { getUploadsDir } from "./lib/logo-upload.js";
 import { prisma } from "./lib/prisma.js";
+import { systemLogoFallbackMiddleware } from "./middlewares/system-logo-fallback.middleware.js";
 
 const app = express();
 const isProduction = process.env["NODE_ENV"] === "production";
@@ -82,10 +83,15 @@ if (process.env["OPS_REQUEST_LOG"] === "1") {
 	});
 }
 
-app.use("/uploads", (req, res, next) => {
-  res.setHeader("X-Content-Type-Options", "nosniff");
-  next();
-}, express.static(path.join(process.cwd(), "uploads")));
+app.use(
+  "/uploads",
+  (req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    next();
+  },
+  express.static(getUploadsDir()),
+  systemLogoFallbackMiddleware,
+);
 
 const openApiDocument = loadOpenApiSpec();
 

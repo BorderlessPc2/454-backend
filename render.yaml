@@ -24,6 +24,8 @@ services:
         sync: false
       - key: EXPOSE_API_DOCS
         sync: false
+      - key: PUBLIC_API_URL
+        sync: false
       - key: CORS_ORIGIN
         value: https://seu-site.netlify.app,http://localhost:5173
       - key: PUPPETEER_EXECUTABLE_PATH
