@@ -142,6 +142,35 @@ body {
   margin-bottom: 2px;
 }
 
+.setores-body {
+  border: 1px solid #111111;
+  border-top: none;
+  padding: 8px;
+  margin-bottom: 10px;
+}
+
+.setor-card {
+  margin-bottom: 8px;
+}
+
+.setor-card:last-child {
+  margin-bottom: 0;
+}
+
+.setor-nome {
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.setor-descricao {
+  color: #374151;
+  margin-bottom: 2px;
+}
+
+.setor-observacao {
+  margin-bottom: 0;
+}
+
 .bullet-line {
   margin-left: 10px;
   margin-bottom: 3px;

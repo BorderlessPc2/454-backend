@@ -4,6 +4,7 @@ import { AuthService } from "../services/auth.service.js";
 import { prisma } from "../lib/prisma.js";
 import type { LoginDTO, CreateUserDTO, UpdateUserDTO } from "../types/dtos.js";
 import type { AuthRequest } from "../middlewares/auth.middleware.js";
+import { resolveScopedUnidadeIdForRequest } from "../lib/scoped-unidade.js";
 import { AUTH_COOKIE_NAME, getAuthCookieOptions } from "../lib/auth-cookie.js";
 
 const authService = new AuthService(prisma);
@@ -123,9 +124,15 @@ export class AuthController {
     }
   }
 
-  static async getUsersTecnico(_req: Request, res: Response): Promise<void> {
+  static async getUsersTecnico(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const users = await authService.getUsersTecnico();
+      const scope = resolveScopedUnidadeIdForRequest(req.user);
+      if (!scope.ok) {
+        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        return;
+      }
+
+      const users = await authService.getUsersTecnico(scope.scopedUnidadeId);
       res.json(users);
     } catch (error) {
       res.status(500).json({ error: "Erro ao buscar técnicos" });

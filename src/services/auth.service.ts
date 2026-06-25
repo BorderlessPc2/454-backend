@@ -269,9 +269,25 @@ export class AuthService {
       },
     });
   }
-  async getUsersTecnico() {
+  /**
+   * Usuários elegíveis como técnico em relatórios (ADMIN + TECNICO ativos).
+   * ADMIN autenticado: sem filtro de unidade. TECNICO: mesma unidade + admins globais (sem unidade).
+   */
+  async getUsersTecnico(scopedUnidadeId: number | null) {
+    const where: Prisma.UserWhereInput = {
+      ativo: true,
+      role: { in: ["ADMIN", "TECNICO"] },
+    };
+
+    if (scopedUnidadeId !== null) {
+      where.OR = [
+        { unidadeId: scopedUnidadeId },
+        { role: "ADMIN", unidadeId: null },
+      ];
+    }
+
     return this.prisma.user.findMany({
-      where: { role: "TECNICO" },
+      where,
       select: {
         id: true,
         username: true,
@@ -282,7 +298,15 @@ export class AuthService {
         unidadeId: true,
         ativo: true,
         createdAt: true,
+        updatedAt: true,
+        cliente: {
+          select: {
+            id: true,
+            nomeFantasia: true,
+          },
+        },
       },
+      orderBy: { nome: "asc" },
     });
   }
 

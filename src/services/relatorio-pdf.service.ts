@@ -41,7 +41,7 @@ export type RelatorioPdfData = {
   tecnicos: { nome: string }[];
   setores: {
     observacao: string | null;
-    setor: { nome: string };
+    setor: { nome: string; descricao?: string | null };
   }[];
   horarios: {
     horaChegada: Date | string;
@@ -136,21 +136,38 @@ function renderHorariosTable(
     </div>`;
 }
 
-function renderSetores(setores: RelatorioPdfData["setores"]): string {
+function renderDetalhesSetores(setores: RelatorioPdfData["setores"]): string {
   if (setores.length === 0) {
     return "";
   }
 
-  return setores
-    .map((setor) => {
-      const nome = escapeHtml(fieldOrNA(setor.setor.nome));
-      const obs = setor.observacao?.trim();
-      const obsHtml = obs
-        ? `<div class="bullet-line">• ${escapeHtml(obs)}</div>`
+  const cards = setores
+    .map((item) => {
+      const nome = escapeHtml(fieldOrNA(item.setor.nome));
+      const descricao = item.setor.descricao?.trim();
+      const descricaoHtml = descricao
+        ? `<p class="setor-descricao">${escapeHtml(descricao)}</p>`
         : "";
-      return `<div class="setor-block"><div class="setor-title">${nome}</div>${obsHtml}</div>`;
+      const observacao = item.observacao?.trim();
+      const observacaoHtml = observacao
+        ? `<p class="setor-observacao">${escapeHtml(observacao)}</p>`
+        : "";
+
+      return `<div class="setor-card">
+        <p class="setor-nome">${nome}</p>
+        ${descricaoHtml}
+        ${observacaoHtml}
+      </div>`;
     })
     .join("");
+
+  return `
+      <div class="section-title-wrap">
+        <div class="section-title">Detalhes dos Setores</div>
+      </div>
+      <div class="setores-body">
+        ${cards}
+      </div>`;
 }
 
 function renderFooterLines(footer: RelatorioPdfFooterConfig): string {
@@ -162,7 +179,7 @@ function renderFooterLines(footer: RelatorioPdfFooterConfig): string {
 function renderObservacoes(observacoes: string | null): string {
   const sanitized = sanitizeRichTextHtml(observacoes);
   if (!sanitized) {
-    return '<p class="empty-line">Sem detalhamento informado.</p>';
+    return '<p class="empty-line">Sem detalhamento dos serviços preenchido.</p>';
   }
   return `<div class="servicos-html">${sanitized}</div>`;
 }
@@ -189,7 +206,7 @@ export class RelatorioPdfService {
       contatoNome !== "N/A" ? contatoNome : "Responsável pelo Cliente";
 
     const titulo = `Relatório Técnico - ${relatorio.id}`;
-    const setoresHtml = renderSetores(relatorio.setores);
+    const detalhesSetoresHtml = renderDetalhesSetores(relatorio.setores);
     const observacoesHtml = renderObservacoes(relatorio.observacoes);
     const horariosHtml = renderHorariosTable(relatorio.horarios);
 
@@ -255,9 +272,9 @@ export class RelatorioPdfService {
         <div class="section-title">Detalhamento dos Serviços</div>
       </div>
       <div class="services-body">
-        ${setoresHtml}
         ${observacoesHtml}
       </div>
+      ${detalhesSetoresHtml}
     </div>
 
     <div class="page-bottom-stack">

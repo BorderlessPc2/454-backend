@@ -525,14 +525,23 @@ paths:
   /users/tecnico:
     get:
       tags: [Users]
-      summary: Listar usuários com role TECNICO
-      description: Qualquer usuário autenticado.
+      summary: Listar técnicos elegíveis para relatório (ADMIN e TECNICO ativos)
+      description: |
+        Qualquer usuário autenticado. Retorna usuários com role ADMIN ou TECNICO
+        e `ativo = true`, ordenados por nome. ADMIN vê todos; TECNICO vê a própria
+        unidade e administradores globais (sem unidade vinculada).
       security:
         - bearerAuth: []
       responses:
         "200":
-          description: Lista de técnicos
+          description: Lista de técnicos elegíveis
         "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "403":
+          description: Técnico sem unidade vinculada
           content:
             application/json:
               schema:
