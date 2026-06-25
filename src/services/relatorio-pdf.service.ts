@@ -136,40 +136,6 @@ function renderHorariosTable(
     </div>`;
 }
 
-function renderDetalhesSetores(setores: RelatorioPdfData["setores"]): string {
-  if (setores.length === 0) {
-    return "";
-  }
-
-  const cards = setores
-    .map((item) => {
-      const nome = escapeHtml(fieldOrNA(item.setor.nome));
-      const descricao = item.setor.descricao?.trim();
-      const descricaoHtml = descricao
-        ? `<p class="setor-descricao">${escapeHtml(descricao)}</p>`
-        : "";
-      const observacao = item.observacao?.trim();
-      const observacaoHtml = observacao
-        ? `<p class="setor-observacao">${escapeHtml(observacao)}</p>`
-        : "";
-
-      return `<div class="setor-card">
-        <p class="setor-nome">${nome}</p>
-        ${descricaoHtml}
-        ${observacaoHtml}
-      </div>`;
-    })
-    .join("");
-
-  return `
-      <div class="section-title-wrap">
-        <div class="section-title">Detalhes dos Setores</div>
-      </div>
-      <div class="setores-body">
-        ${cards}
-      </div>`;
-}
-
 function renderFooterLines(footer: RelatorioPdfFooterConfig): string {
   return footer.lines
     .map((line) => `<div class="footer-left-line">${escapeHtml(line)}</div>`)
@@ -206,7 +172,6 @@ export class RelatorioPdfService {
       contatoNome !== "N/A" ? contatoNome : "Responsável pelo Cliente";
 
     const titulo = `Relatório Técnico - ${relatorio.id}`;
-    const detalhesSetoresHtml = renderDetalhesSetores(relatorio.setores);
     const observacoesHtml = renderObservacoes(relatorio.observacoes);
     const horariosHtml = renderHorariosTable(relatorio.horarios);
 
@@ -274,7 +239,6 @@ export class RelatorioPdfService {
       <div class="services-body">
         ${observacoesHtml}
       </div>
-      ${detalhesSetoresHtml}
     </div>
 
     <div class="page-bottom-stack">
