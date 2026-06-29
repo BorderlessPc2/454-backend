@@ -21,6 +21,27 @@ enum AuditAction {
   DELETE
 }
 
+enum ActivityEntity {
+  USER
+  CLIENTE
+  RELATORIO
+  CHECKLIST
+  SETOR
+  RAMO_ATIVIDADE
+  CONFIGURACAO
+  AUTH
+}
+
+enum ActivityAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  RESET_PASSWORD
+  CHANGE_PASSWORD
+  UPLOAD
+}
+
 enum RelatorioStatus {
   AGENDADO
   FINALIZADO
@@ -40,9 +61,10 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  cliente    Cliente?    @relation(fields: [clienteId], references: [id])
-  relatorios Relatorio[]
-  auditLogs  AuditLog[]
+  cliente             Cliente?             @relation(fields: [clienteId], references: [id])
+  relatorios          Relatorio[]
+  auditLogs           AuditLog[]
+  systemActivityLogs  SystemActivityLog[]
 
   @@map("users")
 }
@@ -250,6 +272,26 @@ model RelatorioChecklist {
   checklist Checklist @relation(fields: [checklistId], references: [id])
 
   @@map("relatorio_checklists")
+}
+
+model SystemActivityLog {
+  id         Int             @id @default(autoincrement())
+  usuarioId  Int             @map("usuario_id")
+  acao       ActivityAction
+  entidade   ActivityEntity
+  entidadeId Int?            @map("entidade_id")
+  descricao  String?         @db.VarChar(500)
+  metadata   Json?
+  ipAddress  String?         @map("ip_address") @db.VarChar(45)
+  timestamp  DateTime        @default(now())
+
+  usuario User @relation(fields: [usuarioId], references: [id])
+
+  @@index([usuarioId])
+  @@index([entidade])
+  @@index([entidadeId])
+  @@index([timestamp])
+  @@map("system_activity_logs")
 }
 
 model Configuracao {

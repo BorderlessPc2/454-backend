@@ -12,6 +12,7 @@ import checklistsRouter from "./routes/checklists.routes.js";
 import setoresRouter from "./routes/setores.routes.js";
 import ramosRouter from "./routes/ramos.routes.js";
 import configuracoesRouter from "./routes/configuracoes.routes.js";
+import systemActivityRouter from "./routes/system-activity.routes.js";
 import { getUploadsDir } from "./lib/logo-upload.js";
 import { prisma } from "./lib/prisma.js";
 import { systemLogoFallbackMiddleware } from "./middlewares/system-logo-fallback.middleware.js";
@@ -143,6 +144,7 @@ app.use("/checklists", checklistsRouter);
 app.use("/setores", setoresRouter);
 app.use("/ramos", ramosRouter);
 app.use("/configuracoes", configuracoesRouter);
+app.use("/admin/activity-logs", systemActivityRouter);
 
 app.use((error: unknown, req: Request, res: Response, _next: NextFunction) => {
   const message =

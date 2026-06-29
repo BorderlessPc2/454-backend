@@ -6,6 +6,8 @@ import type { LoginDTO, CreateUserDTO, UpdateUserDTO } from "../types/dtos.js";
 import type { AuthRequest } from "../middlewares/auth.middleware.js";
 import { resolveScopedUnidadeIdForRequest } from "../lib/scoped-unidade.js";
 import { AUTH_COOKIE_NAME, getAuthCookieOptions } from "../lib/auth-cookie.js";
+import { systemActivityLogger } from "../lib/system-activity-logger.js";
+import { resolveClientIp } from "../lib/resolve-client-ip.js";
 
 const authService = new AuthService(prisma);
 
@@ -23,6 +25,20 @@ export class AuthController {
       const handlerMs = Date.now() - handlerStartedAt;
 
       res.cookie(AUTH_COOKIE_NAME, result.token, getAuthCookieOptions());
+
+      void systemActivityLogger(prisma, {
+        usuarioId: result.user.id,
+        acao: "LOGIN",
+        entidade: "AUTH",
+        descricao: "Realizou login",
+        ipAddress: resolveClientIp(req),
+        metadata: {
+          username: result.user.username,
+          role: result.user.role,
+        },
+      }).catch((error: unknown) => {
+        console.error("[activity-log] Falha ao registrar login:", error);
+      });
 
       console.log(
         "[login-perf]",
@@ -182,7 +198,7 @@ export class AuthController {
     }
   }
 
-  static async resetPassword(req: Request, res: Response): Promise<void> {
+  static async resetPassword(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { username, newPassword } = req.body;
 
@@ -194,6 +210,24 @@ export class AuthController {
       }
 
       const user = await authService.resetPassword(username, newPassword);
+
+      if (req.user) {
+        void systemActivityLogger(prisma, {
+          usuarioId: req.user.id,
+          acao: "RESET_PASSWORD",
+          entidade: "USER",
+          entidadeId: user.id,
+          descricao: `Redefiniu senha do usuário #${user.id}`,
+          ipAddress: resolveClientIp(req),
+          metadata: {
+            targetUsername: user.username,
+            adminUsername: req.user.username,
+          },
+        }).catch((error: unknown) => {
+          console.error("[activity-log] Falha ao registrar reset de senha:", error);
+        });
+      }
+
       res.json({
         message: "Senha resetada com sucesso",
         user,
