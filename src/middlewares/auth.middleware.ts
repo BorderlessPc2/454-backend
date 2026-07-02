@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt, { type JwtPayload } from "jsonwebtoken";
+import { extractAuthToken } from "../lib/extract-auth-token.js";
 import { getJwtSecret } from "../lib/jwt-secret.js";
-import { AUTH_COOKIE_NAME } from "../lib/auth-cookie.js";
 
 export type AuthUser = {
   id: number;
@@ -13,20 +13,17 @@ export type AuthUser = {
 
 export type AuthRequest = Request & {
   user?: AuthUser;
-}
+};
 
 export const authMiddleware = (
   req: Request,
   res: Response,
   next: NextFunction,
 ): void => {
-  const cookies = (req as Request & { cookies?: Record<string, unknown> })
-    .cookies;
-  const tokenRaw = cookies?.[AUTH_COOKIE_NAME];
-  const token = typeof tokenRaw === "string" ? tokenRaw : "";
+  const token = extractAuthToken(req);
 
   if (!token) {
-    res.status(401).json({ error: "Token não fornecido" });
+    res.status(401).json({ error: "Token não fornecido", code: "UNAUTHORIZED" });
     return;
   }
 
@@ -40,7 +37,7 @@ export const authMiddleware = (
       typeof decoded["username"] !== "string" ||
       typeof decoded["role"] !== "string"
     ) {
-      res.status(401).json({ error: "Token inválido" });
+      res.status(401).json({ error: "Token inválido", code: "UNAUTHORIZED" });
       return;
     }
 
@@ -51,17 +48,13 @@ export const authMiddleware = (
       clienteId:
         typeof decoded["clienteId"] === "number" ? decoded["clienteId"] : null,
       unidadeId:
-        typeof decoded["unidadeId"] === "number"
-          ? decoded["unidadeId"]
-          : typeof decoded["clienteId"] === "number"
-            ? decoded["clienteId"]
-            : null,
+        typeof decoded["unidadeId"] === "number" ? decoded["unidadeId"] : null,
     };
 
     (req as AuthRequest).user = user;
 
     next();
   } catch {
-    res.status(401).json({ error: "Token inválido" });
+    res.status(401).json({ error: "Token inválido", code: "UNAUTHORIZED" });
   }
 };

@@ -1,5 +1,6 @@
 import type { Response, NextFunction } from "express";
 import type { AuthRequest } from "./auth.middleware.js";
+import { ServiceUnavailableError } from "../lib/app-error.js";
 import { prisma } from "../lib/prisma.js";
 import { isWithinConfiguredHorario } from "../lib/horario-utils.js";
 
@@ -8,6 +9,7 @@ export const HORARIO_ACCESS_DENIED_MESSAGE =
 
 /**
  * Bloqueia técnicos fora do horário configurado (ADMIN sempre passa).
+ * Fail-closed: falha de infraestrutura bloqueia o acesso.
  */
 export async function horarioAccessMiddleware(
   req: AuthRequest,
@@ -32,8 +34,12 @@ export async function horarioAccessMiddleware(
       return;
     }
 
-    res.status(403).json({ error: HORARIO_ACCESS_DENIED_MESSAGE });
-  } catch {
-    next();
+    res.status(403).json({
+      error: HORARIO_ACCESS_DENIED_MESSAGE,
+      code: "FORBIDDEN",
+    });
+  } catch (error) {
+    console.error("[horario-access] Falha ao verificar horário:", error);
+    next(new ServiceUnavailableError());
   }
 }

@@ -14,7 +14,12 @@ export class ClienteService {
       scopedUnidadeId ??
       (typeof dtoUnidadeId === "number" && Number.isFinite(dtoUnidadeId)
         ? dtoUnidadeId
-        : 1);
+        : null);
+
+    if (resolvedUnidade === null) {
+      throw new Error("unidadeId é obrigatório para criar cliente");
+    }
+
     const unidadeId = Number(resolvedUnidade);
 
     return this.prisma.$transaction(async (tx) => {

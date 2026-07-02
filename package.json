@@ -17,7 +17,7 @@
     "postinstall": "prisma generate",
     "verify-login": "node scripts/verify-login-credentials.mjs",
     "db:migrate-status": "prisma migrate status",
-    "test": "tsx test/sanitize-rich-text.test.ts"
+    "test": "tsx test/sanitize-rich-text.test.ts && tsx test/extract-auth-token.test.ts"
   },
   "keywords": [],
   "author": "",
@@ -59,6 +59,7 @@
     "puppeteer-core": "^25.1.0",
     "sanitize-html": "^2.17.4",
     "swagger-ui-express": "^5.0.1",
-    "yaml": "^2.8.3"
+    "yaml": "^2.8.3",
+    "zod": "^4.4.3"
   }
 }

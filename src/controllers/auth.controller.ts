@@ -200,14 +200,10 @@ export class AuthController {
 
   static async resetPassword(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { username, newPassword } = req.body;
-
-      if (!username || !newPassword) {
-        res.status(400).json({
-          error: "Username e nova senha são obrigatórios",
-        });
-        return;
-      }
+      const { username, newPassword } = req.body as {
+        username: string;
+        newPassword: string;
+      };
 
       const user = await authService.resetPassword(username, newPassword);
 

@@ -3,6 +3,8 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import swaggerUi from "swagger-ui-express";
+import { ForbiddenError } from "./lib/app-error.js";
+import { errorHandler } from "./middlewares/error-handler.middleware.js";
 import { loadOpenApiSpec } from "./docs/loadOpenApi.js";
 import authRouter from "./routes/auth.routes.js";
 import usersRouter from "./routes/users.routes.js";
@@ -20,6 +22,10 @@ import { systemLogoFallbackMiddleware } from "./middlewares/system-logo-fallback
 
 const app = express();
 const isProduction = process.env["NODE_ENV"] === "production";
+
+if (isProduction) {
+  app.set("trust proxy", 1);
+}
 
 const corsOriginConfig = process.env["CORS_ORIGIN"] ?? "http://localhost:5173";
 const allowedOrigins = corsOriginConfig
@@ -45,7 +51,7 @@ app.use(
         return;
       }
 
-      callback(new Error(`Origin ${origin} não permitida por CORS`));
+      callback(new ForbiddenError(`Origin ${origin} não permitida por CORS`));
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
@@ -148,17 +154,6 @@ app.use("/configuracoes", configuracoesRouter);
 app.use("/admin/activity-logs", systemActivityRouter);
 app.use("/dashboard", dashboardRouter);
 
-app.use((error: unknown, req: Request, res: Response, _next: NextFunction) => {
-  const message =
-    error instanceof Error ? error.message : "Erro interno do servidor";
-  const stack = error instanceof Error ? error.stack : undefined;
-  console.error("[ERROR]", {
-    method: req.method,
-    path: req.originalUrl,
-    message,
-    stack,
-  });
-  res.status(500).json({ error: message });
-});
+app.use(errorHandler);
 
 export default app;
