@@ -171,7 +171,7 @@ export class RelatorioPdfService {
     const responsavelCliente =
       contatoNome !== "N/A" ? contatoNome : "Responsável pelo Cliente";
 
-    const titulo = `Relatório Técnico - ${relatorio.id}`;
+    const titulo = "RELATORIO DE ATENDIMENTO TECNICO";
     const observacoesHtml = renderObservacoes(relatorio.observacoes);
     const horariosHtml = renderHorariosTable(relatorio.horarios);
 
@@ -215,19 +215,13 @@ export class RelatorioPdfService {
         <div class="section-title">Informações do Cliente</div>
       </div>
       <div class="section-body">
-        <div class="info-row">
-          <div class="info-line-full"><span class="label">Cliente: </span>${escapeHtml(clienteNome)}</div>
-        </div>
-        <div class="info-row">
+        <div class="info-grid">
+          <div class="info-line info-line-full"><span class="label">Cliente: </span>${escapeHtml(clienteNome)}</div>
           <div class="info-line"><span class="label">Contato: </span>${escapeHtml(contatoNome)}</div>
           <div class="info-line"><span class="label">Função/Cargo Responsável de TI: </span>${escapeHtml(contatoCargo)}</div>
           <div class="info-line"><span class="label">Cidade: </span>${escapeHtml(buildCidadeCliente(relatorio))}</div>
-        </div>
-        <div class="info-row">
           <div class="info-line"><span class="label">Modalidade de atendimento: </span>${escapeHtml(fieldOrNA(relatorio.modalidadeServico))}</div>
           <div class="info-line"><span class="label">N° contrato: </span>${escapeHtml(fieldOrNA(relatorio.numeroContrato))}</div>
-        </div>
-        <div class="info-row">
           <div class="info-line"><span class="label">Técnico designado: </span>${escapeHtml(tecnicoNome)}</div>
           <div class="info-line"><span class="label">Data da visita: </span>${dataVisita ? escapeHtml(formatDatePdf(dataVisita)) : "N/A"}</div>
         </div>

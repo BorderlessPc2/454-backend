@@ -3,11 +3,14 @@ export function isWithinConfiguredHorario(
   dataFim: Date,
   now = new Date(),
 ): boolean {
-  const inicio = new Date(now);
-  inicio.setHours(dataInicio.getHours(), dataInicio.getMinutes(), 0, 0);
+  const startMinutes =
+    dataInicio.getUTCHours() * 60 + dataInicio.getUTCMinutes();
+  const endMinutes = dataFim.getUTCHours() * 60 + dataFim.getUTCMinutes();
+  const nowMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
 
-  const fim = new Date(now);
-  fim.setHours(dataFim.getHours(), dataFim.getMinutes(), 0, 0);
+  if (startMinutes <= endMinutes) {
+    return nowMinutes >= startMinutes && nowMinutes <= endMinutes;
+  }
 
-  return now >= inicio && now <= fim;
+  return nowMinutes >= startMinutes || nowMinutes <= endMinutes;
 }

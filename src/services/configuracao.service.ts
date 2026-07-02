@@ -3,6 +3,11 @@ import { writeSystemLogoFile, buildLogoDataUrl } from "../lib/logo-upload.js";
 import { normalizeLogoStoragePath } from "../lib/normalize-logo-path.js";
 import { resolvePublicLogoUrl } from "../lib/public-logo-url.js";
 import {
+  defaultConfigHorario,
+  normalizeStoredConfigHorario,
+  normalizeConfigHorarioPair,
+} from "../lib/configuracao-horario.js";
+import {
   resolveLogoDataUrl,
   resolveLogoForPdfFromConfig,
   isValidLogoDataUrl,
@@ -60,6 +65,8 @@ export class ConfiguracaoService {
           textoRodapeRelatorio: true,
           logoUrl: true,
           logoDataUrl: true,
+          createdAt: true,
+          updatedAt: true,
         },
       });
     } catch (error) {
@@ -80,7 +87,31 @@ export class ConfiguracaoService {
       return sharedConfigCache.data;
     }
 
-    const data = await this.fetchConfig();
+    const raw = await this.fetchConfig();
+    if (!raw) {
+      sharedConfigCache = { data: null, expiresAt: now + CONFIG_CACHE_TTL_MS };
+      return null;
+    }
+
+    const normalized = normalizeStoredConfigHorario(
+      raw.dataInicio,
+      raw.dataFim,
+    );
+    const isLegacyAnchor =
+      raw.dataInicio.getUTCFullYear() !== 1970 ||
+      raw.dataFim.getUTCFullYear() !== 1970;
+
+    if (isLegacyAnchor) {
+      const updated = await this.prisma.configuracao.update({
+        where: { id: raw.id },
+        data: normalized,
+      });
+      const data = { ...raw, ...updated, ...normalized };
+      sharedConfigCache = { data, expiresAt: now + CONFIG_CACHE_TTL_MS };
+      return data;
+    }
+
+    const data = { ...raw, ...normalized };
     sharedConfigCache = { data, expiresAt: now + CONFIG_CACHE_TTL_MS };
     return data;
   }
@@ -115,11 +146,7 @@ export class ConfiguracaoService {
   }
 
   private defaultHorarioDoDia(): { dataInicio: Date; dataFim: Date } {
-    const dataInicio = new Date();
-    dataInicio.setHours(8, 0, 0, 0);
-    const dataFim = new Date();
-    dataFim.setHours(18, 0, 0, 0);
-    return { dataInicio, dataFim };
+    return defaultConfigHorario();
   }
 
   /**
@@ -147,14 +174,21 @@ export class ConfiguracaoService {
     }
 
     if (hasHorario) {
+      const horarioNormalizado = normalizeConfigHorarioPair(
+        opts.dataInicio!,
+        opts.dataFim!,
+      );
+      opts = {
+        ...opts,
+        dataInicio: horarioNormalizado.dataInicio,
+        dataFim: horarioNormalizado.dataFim,
+      };
+
       if (!isValidDate(opts.dataInicio!)) {
         throw new Error("dataInicio inválida");
       }
       if (!isValidDate(opts.dataFim!)) {
         throw new Error("dataFim inválida");
-      }
-      if (opts.dataFim! < opts.dataInicio!) {
-        throw new Error("dataFim deve ser posterior ou igual a dataInicio");
       }
     }
 

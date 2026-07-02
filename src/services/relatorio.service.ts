@@ -403,12 +403,27 @@ export class RelatorioService {
       throw new Error("Relatório não encontrado");
     }
 
+    const contratoAtivo = await this.prisma.contrato.findFirst({
+      where: {
+        clienteId: relatorio.clienteId,
+        ativo: true,
+        dataInicio: { lte: relatorio.dataVisita },
+        OR: [{ dataFim: null }, { dataFim: { gte: relatorio.dataVisita } }],
+      },
+      select: { numeroContrato: true },
+      orderBy: { dataInicio: "desc" },
+    });
+
     await this.prisma.relatorio.update({
       where: { id: relatorio.id },
       data: { impresso: true },
     });
 
-    return { ...relatorio, impresso: true };
+    return {
+      ...relatorio,
+      impresso: true,
+      numeroContrato: contratoAtivo?.numeroContrato ?? null,
+    };
   }
 
   async update(
