@@ -22,6 +22,11 @@ router.get(
   requireNumericIdParam,
   RelatorioController.downloadPdfFile,
 );
+router.post(
+  "/:id/enviar-email",
+  requireNumericIdParam,
+  RelatorioController.enviarEmail,
+);
 router.get(
   "/:id/pdf-layout",
   requireNumericIdParam,

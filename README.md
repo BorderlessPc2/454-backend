@@ -76,7 +76,11 @@ DATABASE_URL="postgresql://linq:linqq608U@localhost:5432/polls?schema=public"
 JWT_SECRET="sua-chave-secreta-aqui"
 JWT_EXPIRES_IN="8h"
 PORT=3000
+SMTP_USER="seu-email@gmail.com"
+SMTP_PASS="senha-de-app-do-gmail"
 ```
+
+`SMTP_USER` / `SMTP_PASS` são necessários para `POST /relatorios/:id/enviar-email` (Gmail com [senha de app](https://support.google.com/accounts/answer/185833)).
 
 3. Suba o banco PostgreSQL via Docker:
 
@@ -148,6 +152,7 @@ npm start
 - `GET /relatorios/:id` - Buscar relatório
 - `PUT /relatorios/:id` - Atualizar relatório
 - `DELETE /relatorios/:id` - Deletar relatório
+- `POST /relatorios/:id/enviar-email` - Gerar PDF e enviar por e-mail ao contato
 
 ### Checklists (ADMIN only)
 

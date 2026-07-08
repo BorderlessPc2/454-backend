@@ -7,6 +7,7 @@ import {
   RelatorioPdfService,
   RelatorioPdfUnavailableError,
 } from "../services/relatorio-pdf.service.js";
+import { EmailService } from "../services/email.service.js";
 import { configuracaoService } from "../lib/configuracao-service.singleton.js";
 import { prisma } from "../lib/prisma.js";
 import type {
@@ -26,6 +27,7 @@ import { pdfLogoDebug } from "../lib/pdf-logo-debug.js";
 
 const relatorioService = new RelatorioService(prisma);
 const relatorioPdfService = new RelatorioPdfService();
+const emailService = new EmailService();
 
 export class RelatorioController {
   static async create(req: AuthRequest, res: Response): Promise<void> {
@@ -363,6 +365,78 @@ export class RelatorioController {
       res.status(500).json({
         error:
           error instanceof Error ? error.message : "Falha ao gerar PDF",
+      });
+    }
+  }
+
+  static async enviarEmail(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const scope = resolveScopedUnidadeIdForRequest(req.user);
+      if (!scope.ok) {
+        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        return;
+      }
+      const { scopedUnidadeId } = scope;
+
+      const id = parseInt(req.params["id"] ?? "0", 10);
+      if (Number.isNaN(id) || id <= 0) {
+        res.status(400).json({ error: "ID inválido" });
+        return;
+      }
+
+      const [relatorio, branding] = await Promise.all([
+        relatorioService.getRelatorioParaPdf(id, scopedUnidadeId),
+        loadPdfBranding(configuracaoService),
+      ]);
+
+      const to = relatorio.contato?.email?.trim();
+      if (!to) {
+        res.status(400).json({
+          error: "Contato do relatório sem e-mail cadastrado",
+        });
+        return;
+      }
+
+      const buffer = await relatorioPdfService.generatePdfBuffer(
+        normalizeRelatorioForPdf(relatorio),
+        {
+          logoStoragePath: branding.logoStoragePath,
+          logoUrl: branding.rawLogoUrl,
+          logoDataUrl: branding.logoDataUrl,
+          textoRodapeRelatorio: branding.textoRodapeRelatorio,
+        },
+      );
+
+      const clienteNome =
+        relatorio.cliente.nomeFantasia?.trim() ||
+        relatorio.cliente.razaoSocial;
+
+      await emailService.sendRelatorioPdf({
+        to,
+        clienteNome,
+        relatorioId: relatorio.id,
+        pdfBuffer: buffer,
+      });
+
+      res.json({ message: "Relatório enviado por e-mail com sucesso" });
+    } catch (error) {
+      if (error instanceof RelatorioPdfUnavailableError) {
+        res.status(503).json({ error: error.message });
+        return;
+      }
+      if (
+        error instanceof Error &&
+        error.message === "Relatório não encontrado"
+      ) {
+        res.status(404).json({ error: error.message });
+        return;
+      }
+      console.error("Erro ao enviar relatório por e-mail:", error);
+      res.status(500).json({
+        error:
+          error instanceof Error
+            ? error.message
+            : "Falha ao enviar relatório por e-mail",
       });
     }
   }
