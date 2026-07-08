@@ -238,10 +238,11 @@ components:
     ModalidadeServico:
       type: string
       enum:
-        - Sem contrato - remoto
-        - Sem contrato - local
-        - Contrato - local
-        - Contrato - remoto
+        - local
+        - remoto
+      description: >
+        Local ou remoto. A presença de contrato ativo é resolvida pelo cadastro
+        do cliente na data da visita (não faz parte deste campo).
 
     RelatorioSetorItem:
       type: object
@@ -891,9 +892,9 @@ paths:
       summary: Criar relatório
       description: |
         O campo `criadoPorId` é preenchido com o usuário do JWT.
-        Regra de negócio da modalidade:
-        - `Contrato - ...` exige contrato ativo do cliente na `dataVisita`.
-        - `Sem contrato - ...` exige ausência de contrato ativo na `dataVisita`.
+        `modalidade` / `modalidadeServico` aceitam apenas `local` ou `remoto`.
+        Contrato ativo do cliente é resolvido automaticamente na data da visita
+        (exibido no PDF como N° contrato), sem constar no valor da modalidade.
         A criação é transacional: o relatório só é persistido se todos os vínculos filhos (setores, horários e checklists) forem salvos com sucesso.
       security:
         - bearerAuth: []

@@ -131,11 +131,8 @@ export interface CreateRelatorioDTO {
   clienteId: number;
   contatoId?: number;
   dataVisita: string;
-  modalidadeServico:
-    | "Sem contrato - remoto"
-    | "Sem contrato - local"
-    | "Contrato - local"
-    | "Contrato - remoto";
+  /** Local ou remoto; contrato ativo vem do cadastro do cliente. */
+  modalidadeServico: "local" | "remoto";
   observacoes?: string;
   tecnicos: string[];
   setores: Array<{ setorId: number; observacao?: string }>;
@@ -147,11 +144,8 @@ export interface UpdateRelatorioDTO {
   clienteId?: number;
   contatoId?: number;
   dataVisita?: string;
-  modalidadeServico?:
-    | "Sem contrato - remoto"
-    | "Sem contrato - local"
-    | "Contrato - local"
-    | "Contrato - remoto";
+  /** Local ou remoto; contrato ativo vem do cadastro do cliente. */
+  modalidadeServico?: "local" | "remoto";
   observacoes?: string;
   impresso?: boolean;
   tecnicos?: string[];

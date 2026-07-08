@@ -14,29 +14,48 @@ import {
 } from "../lib/horario-datetime.js";
 import { normalizeHorariosInput } from "../lib/normalize-horario-input.js";
 
-const MODALIDADES_SERVICO = [
-  "Sem contrato - remoto",
-  "Sem contrato - local",
-  "Contrato - local",
-  "Contrato - remoto",
-] as const;
+const MODALIDADES_SERVICO = ["local", "remoto"] as const;
 type ModalidadeServico = (typeof MODALIDADES_SERVICO)[number];
 
 type CreateRelatorioInput = CreateRelatorioDTO & { modalidade?: string };
 type UpdateRelatorioInput = UpdateRelatorioDTO & { modalidade?: string };
 
-function validarModalidadeServico(modalidade?: string): void {
-  if (!modalidade) {
-    return;
+/** Aceita valores canônicos e labels legados ("Contrato - local", etc.). */
+function normalizarModalidadeServico(
+  modalidade: string,
+): ModalidadeServico | null {
+  const trimmed = modalidade.trim().toLowerCase();
+
+  if (
+    trimmed === "local" ||
+    trimmed.endsWith("- local") ||
+    (trimmed.includes("local") && !trimmed.includes("remoto"))
+  ) {
+    return "local";
   }
 
   if (
-    !MODALIDADES_SERVICO.includes(
-      modalidade as (typeof MODALIDADES_SERVICO)[number],
-    )
+    trimmed === "remoto" ||
+    trimmed.endsWith("- remoto") ||
+    trimmed.includes("remoto")
   ) {
-    throw new Error("Modalidade de servico invalida");
+    return "remoto";
   }
+
+  return null;
+}
+
+function validarModalidadeServico(modalidade?: string): ModalidadeServico | undefined {
+  if (!modalidade) {
+    return undefined;
+  }
+
+  const normalizada = normalizarModalidadeServico(modalidade);
+  if (!normalizada) {
+    throw new Error("Modalidade de servico invalida (use local ou remoto)");
+  }
+
+  return normalizada;
 }
 
 function resolverModalidadeServico(data: {
@@ -52,26 +71,7 @@ function resolverModalidadeServico(data: {
   }
 
   const modalidade = data.modalidade ?? data.modalidadeServico;
-  validarModalidadeServico(modalidade);
-
-  return modalidade as ModalidadeServico | undefined;
-}
-
-function validarModalidadePorContrato(
-  modalidade: ModalidadeServico,
-  possuiContratoAtivo: boolean,
-): void {
-  if (modalidade.startsWith("Contrato -") && !possuiContratoAtivo) {
-    throw new Error(
-      "Modalidade inválida: cliente sem contrato ativo na data da visita",
-    );
-  }
-
-  if (modalidade.startsWith("Sem contrato -") && possuiContratoAtivo) {
-    throw new Error(
-      "Modalidade inválida: cliente possui contrato ativo na data da visita",
-    );
-  }
+  return validarModalidadeServico(modalidade);
 }
 
 const RELATORIO_INCLUDE_COMPLETO = {
@@ -146,17 +146,6 @@ export class RelatorioService {
       if (!cliente) {
         throw new Error("Cliente não pertence à sua unidade");
       }
-
-      const possuiContratoAtivo = await tx.contrato.findFirst({
-        where: {
-          clienteId: data.clienteId,
-          ativo: true,
-          dataInicio: { lte: dataVisita },
-          OR: [{ dataFim: null }, { dataFim: { gte: dataVisita } }],
-        },
-        select: { id: true },
-      });
-      validarModalidadePorContrato(modalidadeServico, Boolean(possuiContratoAtivo));
 
       const relatorioData: Prisma.RelatorioUncheckedCreateInput = {
         clienteId: data.clienteId,

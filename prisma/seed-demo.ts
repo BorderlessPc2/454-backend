@@ -317,7 +317,7 @@ async function main(): Promise<void> {
       contatoId: contatoTech.id,
       criadoPorId: tecnico1.id,
       dataVisita: visita1,
-      modalidadeServico: "Contrato - local",
+      modalidadeServico: "local",
       status: "FINALIZADO",
       observacoes: "<p>Visita de rotina. Servidores e backup validados.</p>",
       impresso: false,
@@ -366,7 +366,7 @@ async function main(): Promise<void> {
       contatoId: contatoMercado.id,
       criadoPorId: tecnico1.id,
       dataVisita: visita2,
-      modalidadeServico: "Contrato - local",
+      modalidadeServico: "local",
       status: "FINALIZADO",
       observacoes: "Visita parcial — pendências no setor de operações.",
       tecnicos: {

@@ -37,6 +37,7 @@ enum ActivityAction {
   UPDATE
   DELETE
   LOGIN
+  LOGIN_FAILED
   RESET_PASSWORD
   CHANGE_PASSWORD
   UPLOAD
@@ -276,7 +277,7 @@ model RelatorioChecklist {
 
 model SystemActivityLog {
   id         Int             @id @default(autoincrement())
-  usuarioId  Int             @map("usuario_id")
+  usuarioId  Int?            @map("usuario_id")
   acao       ActivityAction
   entidade   ActivityEntity
   entidadeId Int?            @map("entidade_id")
@@ -285,7 +286,7 @@ model SystemActivityLog {
   ipAddress  String?         @map("ip_address") @db.VarChar(45)
   timestamp  DateTime        @default(now())
 
-  usuario User @relation(fields: [usuarioId], references: [id])
+  usuario User? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
 
   @@index([usuarioId])
   @@index([entidade])

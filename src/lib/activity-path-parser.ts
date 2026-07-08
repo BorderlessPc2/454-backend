@@ -23,6 +23,7 @@ const ACTION_LABELS: Record<ActivityAction, string> = {
   UPDATE: "Atualizou",
   DELETE: "Excluiu",
   LOGIN: "Realizou login",
+  LOGIN_FAILED: "Tentativa de login falhou",
   RESET_PASSWORD: "Redefiniu senha de",
   CHANGE_PASSWORD: "Alterou senha de",
   UPLOAD: "Enviou arquivo em",
@@ -42,7 +43,7 @@ function buildDescricao(
   const actionLabel = ACTION_LABELS[acao] ?? String(acao);
   const entityLabel = ENTITY_LABELS[entidade] ?? String(entidade);
 
-  if (acao === "LOGIN") {
+  if (acao === "LOGIN" || acao === "LOGIN_FAILED") {
     return actionLabel;
   }
 

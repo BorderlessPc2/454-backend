@@ -11,6 +11,63 @@ import { resolveClientIp } from "../lib/resolve-client-ip.js";
 
 const authService = new AuthService(prisma);
 
+function resolveLoginCredential(body: LoginDTO): string {
+  return (
+    (typeof body.email === "string" ? body.email.trim() : "") ||
+    (typeof body.username === "string" ? body.username.trim() : "")
+  );
+}
+
+async function findUserIdByCredential(
+  credential: string,
+): Promise<number | null> {
+  if (!credential) {
+    return null;
+  }
+
+  const user = credential.includes("@")
+    ? await prisma.user.findUnique({
+        where: { email: credential },
+        select: { id: true },
+      })
+    : await prisma.user.findUnique({
+        where: { username: credential },
+        select: { id: true },
+      });
+
+  return user?.id ?? null;
+}
+
+function logFailedLogin(
+  req: Request,
+  opts: {
+    reason: string;
+    credential: string;
+    usuarioId?: number | null;
+  },
+): void {
+  void (async () => {
+    const usuarioId =
+      opts.usuarioId !== undefined
+        ? opts.usuarioId
+        : await findUserIdByCredential(opts.credential);
+
+    await systemActivityLogger(prisma, {
+      usuarioId,
+      acao: "LOGIN_FAILED",
+      entidade: "AUTH",
+      descricao: "Tentativa de login falhou",
+      ipAddress: resolveClientIp(req),
+      metadata: {
+        credential: opts.credential || null,
+        reason: opts.reason,
+      },
+    });
+  })().catch((error: unknown) => {
+    console.error("[activity-log] Falha ao registrar login falho:", error);
+  });
+}
+
 export class AuthController {
   static async login(req: Request, res: Response): Promise<void> {
     const routeStartedAt =
@@ -80,6 +137,21 @@ export class AuthController {
           "Senha não fornecida",
         ];
         if (known.includes(error.message)) {
+          const data = req.body as LoginDTO;
+          const credential = resolveLoginCredential(data);
+
+          if (error.message === "Credenciais inválidas") {
+            logFailedLogin(req, {
+              reason: "invalid_credentials",
+              credential,
+            });
+          } else if (error.message === "Senha não fornecida") {
+            logFailedLogin(req, {
+              reason: "missing_password",
+              credential,
+            });
+          }
+
           const status =
             error.message === "Credenciais inválidas" ? 401 : 400;
           res.status(status).json({ error: error.message });

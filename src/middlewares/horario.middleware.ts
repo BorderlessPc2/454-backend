@@ -1,6 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
 import { prisma } from "../lib/prisma.js";
 import { isWithinConfiguredHorario } from "../lib/horario-utils.js";
+import { systemActivityLogger } from "../lib/system-activity-logger.js";
+import { resolveClientIp } from "../lib/resolve-client-ip.js";
 
 export const HORARIO_LOGIN_DENIED_MESSAGE =
   "Login permitido apenas dentro do horario configurado";
@@ -12,22 +14,24 @@ function getLoginCredential(req: Request): string {
   return email;
 }
 
-async function isAdminLoginCredential(credential: string): Promise<boolean> {
+async function findLoginUserByCredential(credential: string): Promise<{
+  id: number;
+  role: string;
+  ativo: boolean;
+} | null> {
   if (!credential) {
-    return false;
+    return null;
   }
 
-  const user = credential.includes("@")
-    ? await prisma.user.findUnique({
+  return credential.includes("@")
+    ? prisma.user.findUnique({
         where: { email: credential },
-        select: { role: true, ativo: true },
+        select: { id: true, role: true, ativo: true },
       })
-    : await prisma.user.findUnique({
+    : prisma.user.findUnique({
         where: { username: credential },
-        select: { role: true, ativo: true },
+        select: { id: true, role: true, ativo: true },
       });
-
-  return user?.ativo === true && user.role === "ADMIN";
 }
 
 /**
@@ -50,10 +54,29 @@ export const horarioMiddleware = async (
   }
 
   const credential = getLoginCredential(req);
-  if (credential && (await isAdminLoginCredential(credential))) {
+  const user = await findLoginUserByCredential(credential);
+
+  if (user?.ativo === true && user.role === "ADMIN") {
     next();
     return;
   }
+
+  void systemActivityLogger(prisma, {
+    usuarioId: user?.id ?? null,
+    acao: "LOGIN_FAILED",
+    entidade: "AUTH",
+    descricao: "Tentativa de login falhou",
+    ipAddress: resolveClientIp(req),
+    metadata: {
+      credential: credential || null,
+      reason: "outside_allowed_hours",
+    },
+  }).catch((error: unknown) => {
+    console.error(
+      "[activity-log] Falha ao registrar login fora do horário:",
+      error,
+    );
+  });
 
   res.status(403).json({
     error: HORARIO_LOGIN_DENIED_MESSAGE,

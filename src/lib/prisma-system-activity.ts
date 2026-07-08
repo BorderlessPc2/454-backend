@@ -3,7 +3,7 @@ import type { ActivityAction, ActivityEntity } from "./system-activity-logger.js
 
 export type SystemActivityLogRecord = {
   id: number;
-  usuarioId: number;
+  usuarioId: number | null;
   acao: ActivityAction;
   entidade: ActivityEntity;
   entidadeId: number | null;
@@ -16,13 +16,13 @@ export type SystemActivityLogRecord = {
     nome: string;
     username: string;
     role: string;
-  };
+  } | null;
 };
 
 type SystemActivityLogClient = {
   create: (args: {
     data: {
-      usuarioId: number;
+      usuarioId: number | null;
       acao: ActivityAction;
       entidade: ActivityEntity;
       entidadeId: number | null;

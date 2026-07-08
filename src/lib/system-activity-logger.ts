@@ -17,6 +17,7 @@ export const ACTIVITY_ACTIONS = [
   "UPDATE",
   "DELETE",
   "LOGIN",
+  "LOGIN_FAILED",
   "RESET_PASSWORD",
   "CHANGE_PASSWORD",
   "UPLOAD",
@@ -26,7 +27,8 @@ export type ActivityEntity = (typeof ACTIVITY_ENTITIES)[number];
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
 
 export type SystemActivityLoggerInput = {
-  usuarioId: number;
+  /** Null quando a tentativa de login não resolve um usuário (credencial inexistente). */
+  usuarioId?: number | null;
   acao: ActivityAction;
   entidade: ActivityEntity;
   entidadeId?: number | null;
@@ -47,7 +49,7 @@ export async function systemActivityLogger(
 ): Promise<void> {
   await getSystemActivityLogClient(db).create({
     data: {
-      usuarioId: input.usuarioId,
+      usuarioId: input.usuarioId ?? null,
       acao: input.acao,
       entidade: input.entidade,
       entidadeId: input.entidadeId ?? null,

@@ -15,6 +15,7 @@ import {
   type RelatorioPdfFooterConfig,
 } from "../lib/relatorio-pdf-footer.js";
 import { formatDateWallClock } from "../lib/horario-datetime.js";
+import { formatModalidadeShort } from "../lib/calendario-datetime.js";
 import { pdfLogoDebug } from "../lib/pdf-logo-debug.js";
 import {
   isValidLogoDataUrl,
@@ -220,7 +221,7 @@ export class RelatorioPdfService {
           <div class="info-line"><span class="label">Contato: </span>${escapeHtml(contatoNome)}</div>
           <div class="info-line"><span class="label">Função/Cargo Responsável de TI: </span>${escapeHtml(contatoCargo)}</div>
           <div class="info-line"><span class="label">Cidade: </span>${escapeHtml(buildCidadeCliente(relatorio))}</div>
-          <div class="info-line"><span class="label">Modalidade de atendimento: </span>${escapeHtml(fieldOrNA(relatorio.modalidadeServico))}</div>
+          <div class="info-line"><span class="label">Modalidade de atendimento: </span>${escapeHtml(formatModalidadeShort(relatorio.modalidadeServico))}</div>
           <div class="info-line"><span class="label">N° contrato: </span>${escapeHtml(fieldOrNA(relatorio.numeroContrato))}</div>
           <div class="info-line"><span class="label">Técnico designado: </span>${escapeHtml(tecnicoNome)}</div>
           <div class="info-line"><span class="label">Data da visita: </span>${dataVisita ? escapeHtml(formatDatePdf(dataVisita)) : "N/A"}</div>
