@@ -7,6 +7,10 @@ import {
   serializeConfigHorario,
 } from "../lib/configuracao-horario.js";
 import { resolvePublicLogoUrl } from "../lib/public-logo-url.js";
+import {
+  parseBrandThemePalette,
+  type BrandThemePalette,
+} from "../lib/brand-theme.js";
 
 type ConfiguracaoRecord = NonNullable<
   Awaited<ReturnType<typeof configuracaoService.get>>
@@ -31,6 +35,7 @@ function serializeConfiguracaoResponse(
       ...horario,
       textoRodapeRelatorio: null,
       logoUrl: null,
+      themePalette: null,
     };
   }
 
@@ -39,6 +44,7 @@ function serializeConfiguracaoResponse(
     ...horario,
     textoRodapeRelatorio: config.textoRodapeRelatorio ?? null,
     logoUrl,
+    themePalette: parseBrandThemePalette(config.themePalette),
     createdAt: config.createdAt,
     updatedAt: config.updatedAt,
   };
@@ -73,6 +79,7 @@ export class ConfiguracaoController {
         res.json({
           logoUrl: null,
           textoRodapeRelatorio: null,
+          themePalette: null,
         });
         return;
       }
@@ -80,6 +87,7 @@ export class ConfiguracaoController {
       res.json({
         logoUrl: resolvePublicLogoUrl(config.logoUrl),
         textoRodapeRelatorio: config.textoRodapeRelatorio ?? null,
+        themePalette: parseBrandThemePalette(config.themePalette),
       });
     } catch {
       res.status(500).json({ error: "Erro ao buscar configurações do PDF" });
@@ -104,6 +112,7 @@ export class ConfiguracaoController {
         dataFim?: Date;
         textoRodapeRelatorio?: string | null;
         logoUrl?: string | null;
+        themePalette?: BrandThemePalette | null;
       } = {};
 
       try {
@@ -142,6 +151,20 @@ export class ConfiguracaoController {
               : String(v);
       }
 
+      if (Object.prototype.hasOwnProperty.call(body, "themePalette")) {
+        const v = body.themePalette;
+        if (v === null || v === undefined) {
+          patch.themePalette = null;
+        } else {
+          const parsed = parseBrandThemePalette(v);
+          if (!parsed) {
+            res.status(400).json({ error: "themePalette inválida." });
+            return;
+          }
+          patch.themePalette = parsed;
+        }
+      }
+
       const config = await configuracaoService.patch(patch);
       res.json(
         serializeConfiguracaoResponse(
@@ -167,11 +190,31 @@ export class ConfiguracaoController {
         return;
       }
 
-      const config = await configuracaoService.saveLogoFile({
-        buffer: file.buffer,
-        originalname: file.originalname,
-        mimetype: file.mimetype,
-      });
+      let themePalette: BrandThemePalette | null | undefined;
+      const rawTheme = (req.body as Record<string, unknown>).themePalette;
+      if (rawTheme !== undefined && rawTheme !== null && rawTheme !== "") {
+        try {
+          const parsed =
+            typeof rawTheme === "string" ? JSON.parse(rawTheme) : rawTheme;
+          if (!parseBrandThemePalette(parsed)) {
+            res.status(400).json({ error: "themePalette inválida." });
+            return;
+          }
+          themePalette = parsed;
+        } catch {
+          res.status(400).json({ error: "themePalette inválida." });
+          return;
+        }
+      }
+
+      const config = await configuracaoService.saveLogoFile(
+        {
+          buffer: file.buffer,
+          originalname: file.originalname,
+          mimetype: file.mimetype,
+        },
+        themePalette,
+      );
 
       res.json({
         ...serializeConfiguracaoResponse(

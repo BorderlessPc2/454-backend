@@ -13,11 +13,17 @@ import {
   isValidLogoDataUrl,
 } from "../lib/resolve-logo-data-url.js";
 
+import {
+  parseBrandThemePalette,
+  type BrandThemePalette,
+} from "../lib/brand-theme.js";
+
 export type ConfiguracaoPatchInput = {
   dataInicio?: Date;
   dataFim?: Date;
   textoRodapeRelatorio?: string | null;
   logoUrl?: string | null;
+  themePalette?: BrandThemePalette | null;
 };
 
 export type LogoUploadFile = {
@@ -65,6 +71,7 @@ export class ConfiguracaoService {
           textoRodapeRelatorio: true,
           logoUrl: true,
           logoDataUrl: true,
+          themePalette: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -158,10 +165,11 @@ export class ConfiguracaoService {
       opts.dataInicio !== undefined && opts.dataFim !== undefined;
     const hasRodape = opts.textoRodapeRelatorio !== undefined;
     const hasLogo = opts.logoUrl !== undefined;
+    const hasTheme = opts.themePalette !== undefined;
 
-    if (!hasHorario && !hasRodape && !hasLogo) {
+    if (!hasHorario && !hasRodape && !hasLogo && !hasTheme) {
       throw new Error(
-        "Informe dataInicio e dataFim (juntos), textoRodapeRelatorio e/ou logoUrl",
+        "Informe dataInicio e dataFim (juntos), textoRodapeRelatorio, logoUrl e/ou themePalette",
       );
     }
 
@@ -220,6 +228,7 @@ export class ConfiguracaoService {
             ? { textoRodapeRelatorio: opts.textoRodapeRelatorio }
             : {}),
           ...(hasLogo ? logoPatch : {}),
+          ...(hasTheme ? { themePalette: opts.themePalette ?? Prisma.JsonNull } : {}),
         },
       });
       this.invalidateConfigCache();
@@ -246,6 +255,7 @@ export class ConfiguracaoService {
           ? { textoRodapeRelatorio: opts.textoRodapeRelatorio }
           : {}),
         ...logoPatch,
+        ...(hasTheme ? { themePalette: opts.themePalette ?? Prisma.JsonNull } : {}),
       },
     });
     this.invalidateConfigCache();
@@ -253,7 +263,16 @@ export class ConfiguracaoService {
   }
 
   /** Atualiza logo (caminho público + base64 embutido para PDF). */
-  async updateLogo(logoUrl: string, logoDataUrl: string | null) {
+  async updateLogo(
+    logoUrl: string,
+    logoDataUrl: string | null,
+    themePalette?: BrandThemePalette | null,
+  ) {
+    const themeData =
+      themePalette === undefined
+        ? {}
+        : { themePalette: themePalette ?? Prisma.JsonNull };
+
     const existing = await this.prisma.configuracao.findFirst();
 
     if (!existing) {
@@ -264,6 +283,7 @@ export class ConfiguracaoService {
           dataFim: horario.dataFim,
           logoUrl,
           logoDataUrl,
+          ...themeData,
         },
       });
       this.invalidateConfigCache();
@@ -272,7 +292,7 @@ export class ConfiguracaoService {
 
     const updated = await this.prisma.configuracao.update({
       where: { id: existing.id },
-      data: { logoUrl, logoDataUrl },
+      data: { logoUrl, logoDataUrl, ...themeData },
     });
     this.invalidateConfigCache();
     return updated;
@@ -317,7 +337,10 @@ export class ConfiguracaoService {
     return this.updateLogo(logoUrl, null);
   }
 
-  async saveLogoFile(file: LogoUploadFile) {
+  async saveLogoFile(
+    file: LogoUploadFile,
+    themePalette?: BrandThemePalette | null,
+  ) {
     const { logoPath } = await writeSystemLogoFile(
       file.buffer,
       file.originalname,
@@ -328,7 +351,7 @@ export class ConfiguracaoService {
       file.mimetype,
       file.originalname,
     );
-    return this.updateLogo(logoPath, logoDataUrl);
+    return this.updateLogo(logoPath, logoDataUrl, themePalette);
   }
 
   /** Mantido para uso legado ou scripts; preferir `patch`. */

@@ -305,6 +305,8 @@ model Configuracao {
   logoUrl                 String?  @map("logo_url") @db.VarChar(512)
   /** Logo embutida em base64 para PDF (sobrevive a disco efêmero). */
   logoDataUrl             String?  @map("logo_data_url") @db.Text
+  /** Paleta HSL derivada da logo para personalização visual da UI. */
+  themePalette            Json?    @map("theme_palette")
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 
