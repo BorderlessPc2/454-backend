@@ -2,6 +2,7 @@ import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcrypt";
+import { applyDefaultSystemLogoIfMissing } from "../src/lib/default-system-logo.js";
 
 const databaseUrl = process.env["DATABASE_URL"];
 
@@ -73,6 +74,8 @@ async function main() {
     update: { dataInicio: inicio, dataFim: fim },
     create: { id: 1, dataInicio: inicio, dataFim: fim },
   });
+
+  await applyDefaultSystemLogoIfMissing(prisma);
 
   console.log("Configurações iniciais criadas");
 

@@ -9,6 +9,7 @@ import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcrypt";
+import { applyDefaultSystemLogoIfMissing } from "../src/lib/default-system-logo.js";
 
 const databaseUrl = process.env["DATABASE_URL"];
 
@@ -108,6 +109,8 @@ async function main(): Promise<void> {
         "<p>LINQ Informática — Relatório gerado em ambiente de demonstração.</p>",
     },
   });
+
+  await applyDefaultSystemLogoIfMissing(prisma);
 
   console.log("Configuração: horário liberado + rodapé de PDF");
 
