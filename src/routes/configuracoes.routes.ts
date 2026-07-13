@@ -42,6 +42,20 @@ router.post("/logo", (req, res, next) => {
   });
 });
 
+router.post("/logo-dark", (req, res, next) => {
+  logoUploadMiddleware(req, res, (err: unknown) => {
+    if (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Erro ao processar upload da logo escura";
+      res.status(400).json({ error: message });
+      return;
+    }
+    void ConfiguracaoController.uploadLogoDark(req, res);
+  });
+});
+
 
 
 export default router;

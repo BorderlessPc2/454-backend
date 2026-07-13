@@ -23,6 +23,7 @@ export type ConfiguracaoPatchInput = {
   dataFim?: Date;
   textoRodapeRelatorio?: string | null;
   logoUrl?: string | null;
+  logoDarkUrl?: string | null;
   themePalette?: BrandThemePalette | null;
 };
 
@@ -70,7 +71,9 @@ export class ConfiguracaoService {
           dataFim: true,
           textoRodapeRelatorio: true,
           logoUrl: true,
+          logoDarkUrl: true,
           logoDataUrl: true,
+          logoDarkDataUrl: true,
           themePalette: true,
           createdAt: true,
           updatedAt: true,
@@ -165,11 +168,12 @@ export class ConfiguracaoService {
       opts.dataInicio !== undefined && opts.dataFim !== undefined;
     const hasRodape = opts.textoRodapeRelatorio !== undefined;
     const hasLogo = opts.logoUrl !== undefined;
+    const hasLogoDark = opts.logoDarkUrl !== undefined;
     const hasTheme = opts.themePalette !== undefined;
 
-    if (!hasHorario && !hasRodape && !hasLogo && !hasTheme) {
+    if (!hasHorario && !hasRodape && !hasLogo && !hasLogoDark && !hasTheme) {
       throw new Error(
-        "Informe dataInicio e dataFim (juntos), textoRodapeRelatorio, logoUrl e/ou themePalette",
+        "Informe dataInicio e dataFim (juntos), textoRodapeRelatorio, logoUrl, logoDarkUrl e/ou themePalette",
       );
     }
 
@@ -219,6 +223,19 @@ export class ConfiguracaoService {
         );
       }
 
+      let logoDarkPatch: { logoDarkUrl: string | null; logoDarkDataUrl: string | null } = {
+        logoDarkUrl: null,
+        logoDarkDataUrl: null,
+      };
+      if (hasLogoDark) {
+        const darkRes = await this.resolveLogoDataUrlForStorage(
+          opts.logoDarkUrl,
+          null,
+          null,
+        );
+        logoDarkPatch = { logoDarkUrl: darkRes.logoUrl, logoDarkDataUrl: darkRes.logoDataUrl };
+      }
+
       const created = await this.prisma.configuracao.create({
         data: {
           id: 1,
@@ -228,6 +245,7 @@ export class ConfiguracaoService {
             ? { textoRodapeRelatorio: opts.textoRodapeRelatorio }
             : {}),
           ...(hasLogo ? logoPatch : {}),
+          ...(hasLogoDark ? logoDarkPatch : {}),
           ...(hasTheme ? { themePalette: opts.themePalette ?? Prisma.JsonNull } : {}),
         },
       });
@@ -245,6 +263,16 @@ export class ConfiguracaoService {
       );
     }
 
+    let logoDarkPatch: { logoDarkUrl?: string | null; logoDarkDataUrl?: string | null } = {};
+    if (hasLogoDark) {
+      const darkRes = await this.resolveLogoDataUrlForStorage(
+        opts.logoDarkUrl,
+        existing.logoDarkUrl,
+        existing.logoDarkDataUrl,
+      );
+      logoDarkPatch = { logoDarkUrl: darkRes.logoUrl, logoDarkDataUrl: darkRes.logoDataUrl };
+    }
+
     const updated = await this.prisma.configuracao.update({
       where: { id: existing.id },
       data: {
@@ -255,6 +283,7 @@ export class ConfiguracaoService {
           ? { textoRodapeRelatorio: opts.textoRodapeRelatorio }
           : {}),
         ...logoPatch,
+        ...logoDarkPatch,
         ...(hasTheme ? { themePalette: opts.themePalette ?? Prisma.JsonNull } : {}),
       },
     });
@@ -293,6 +322,41 @@ export class ConfiguracaoService {
     const updated = await this.prisma.configuracao.update({
       where: { id: existing.id },
       data: { logoUrl, logoDataUrl, ...themeData },
+    });
+    this.invalidateConfigCache();
+    return updated;
+  }
+
+  async updateLogoDark(
+    logoDarkUrl: string,
+    logoDarkDataUrl: string | null,
+    themePalette?: BrandThemePalette | null,
+  ) {
+    const themeData =
+      themePalette === undefined
+        ? {}
+        : { themePalette: themePalette ?? Prisma.JsonNull };
+
+    const existing = await this.prisma.configuracao.findFirst();
+
+    if (!existing) {
+      const horario = this.defaultHorarioDoDia();
+      const created = await this.prisma.configuracao.create({
+        data: {
+          dataInicio: horario.dataInicio,
+          dataFim: horario.dataFim,
+          logoDarkUrl,
+          logoDarkDataUrl,
+          ...themeData,
+        },
+      });
+      this.invalidateConfigCache();
+      return created;
+    }
+
+    const updated = await this.prisma.configuracao.update({
+      where: { id: existing.id },
+      data: { logoDarkUrl, logoDarkDataUrl, ...themeData },
     });
     this.invalidateConfigCache();
     return updated;
@@ -352,6 +416,23 @@ export class ConfiguracaoService {
       file.originalname,
     );
     return this.updateLogo(logoPath, logoDataUrl, themePalette);
+  }
+
+  async saveLogoDarkFile(
+    file: LogoUploadFile,
+    themePalette?: BrandThemePalette | null,
+  ) {
+    const { logoPath } = await writeSystemLogoFile(
+      file.buffer,
+      file.originalname,
+      file.mimetype,
+    );
+    const logoDarkDataUrl = buildLogoDataUrl(
+      file.buffer,
+      file.mimetype,
+      file.originalname,
+    );
+    return this.updateLogoDark(logoPath, logoDarkDataUrl, themePalette);
   }
 
   /** Mantido para uso legado ou scripts; preferir `patch`. */

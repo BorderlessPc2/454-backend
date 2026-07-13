@@ -303,8 +303,12 @@ model Configuracao {
   textoRodapeRelatorio    String?  @map("texto_rodape_relatorio") @db.Text
   /** Caminho público da logo (ex.: /uploads/system-logo.png). */
   logoUrl                 String?  @map("logo_url") @db.VarChar(512)
+  /** Caminho público da logo para o tema escuro (ex.: /uploads/system-logo-dark.png). */
+  logoDarkUrl             String?  @map("logo_dark_url") @db.VarChar(512)
   /** Logo embutida em base64 para PDF (sobrevive a disco efêmero). */
   logoDataUrl             String?  @map("logo_data_url") @db.Text
+  /** Logo embutida em base64 do tema escuro. */
+  logoDarkDataUrl         String?  @map("logo_dark_data_url") @db.Text
   /** Paleta HSL derivada da logo para personalização visual da UI. */
   themePalette            Json?    @map("theme_palette")
   createdAt               DateTime @default(now())

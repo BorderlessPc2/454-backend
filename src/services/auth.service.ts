@@ -65,36 +65,25 @@ export class AuthService {
   private async resolveUnidadeIdForTecnicoOnCreate(
     data: CreateUserDTO,
   ): Promise<number> {
-    if (data.clienteId !== undefined) {
-      const fromCliente = await this.resolveUnidadeIdFromCliente(
-        data.clienteId,
-      );
-      if (fromCliente == null) {
-        throw new Error("Cliente não encontrado");
-      }
-      if (
-        data.unidadeId !== undefined &&
-        data.unidadeId !== fromCliente
-      ) {
-        throw new Error(
-          "unidadeId informado não corresponde à unidade do cliente",
-        );
-      }
-      return fromCliente;
+    if (data.clienteId === undefined) {
+      throw new Error("Técnico deve estar vinculado a um cliente");
     }
 
+    const fromCliente = await this.resolveUnidadeIdFromCliente(
+      data.clienteId,
+    );
+    if (fromCliente == null) {
+      throw new Error("Cliente não encontrado");
+    }
     if (
-      data.unidadeId === undefined ||
-      typeof data.unidadeId !== "number" ||
-      !Number.isInteger(data.unidadeId) ||
-      data.unidadeId < 1
+      data.unidadeId !== undefined &&
+      data.unidadeId !== fromCliente
     ) {
       throw new Error(
-        "Técnico deve ter unidadeId no cadastro ou estar vinculado a um cliente",
+        "unidadeId informado não corresponde à unidade do cliente",
       );
     }
-
-    return data.unidadeId;
+    return fromCliente;
   }
 
   async login(data: LoginDTO): Promise<{
@@ -355,12 +344,12 @@ export class AuthService {
     };
 
     const nextRole = data.role ?? existing.role;
-    const effectiveUnidadeId =
-      nextUnidadeId !== undefined ? nextUnidadeId : existing.unidadeId;
+    const nextClienteId =
+      data.clienteId !== undefined ? data.clienteId : existing.clienteId;
 
-    if (nextRole === "TECNICO" && effectiveUnidadeId == null) {
+    if (nextRole === "TECNICO" && nextClienteId == null) {
       throw new Error(
-        "Técnico deve ter unidade vinculada (informe clienteId ou unidadeId)",
+        "Técnico deve estar vinculado a um cliente",
       );
     }
 

@@ -224,7 +224,7 @@ export class RelatorioPdfService {
           <div class="info-line"><span class="label">Modalidade de atendimento: </span>${escapeHtml(formatModalidadeShort(relatorio.modalidadeServico))}</div>
           <div class="info-line"><span class="label">N° contrato: </span>${escapeHtml(fieldOrNA(relatorio.numeroContrato))}</div>
           <div class="info-line"><span class="label">Técnico designado: </span>${escapeHtml(tecnicoNome)}</div>
-          <div class="info-line"><span class="label">Data da visita: </span>${dataVisita ? escapeHtml(formatDatePdf(dataVisita)) : "N/A"}</div>
+
         </div>
       </div>
 
