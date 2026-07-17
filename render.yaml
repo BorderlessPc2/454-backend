@@ -1,3 +1,13 @@
+# Blueprint do Render — cria o banco Postgres e o serviço web juntos.
+# Deploy: no dashboard do Render → New → Blueprint → conecte este repositório.
+
+databases:
+  - name: 454-db
+    databaseName: polls
+    user: linq
+    region: oregon
+    plan: free
+
 services:
   # Aplicação Web Backend
   - type: web
@@ -7,29 +17,44 @@ services:
     region: oregon
     plan: free
     healthCheckPath: /health
+    autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 3000
+      # DATABASE_URL vem automaticamente do banco criado acima.
+      # O script start.sh normaliza o host interno + SSL antes do migrate.
       - key: DATABASE_URL
-        sync: false
-      - key: DIRECT_URL
-        sync: false
+        fromDatabase:
+          name: 454-db
+          property: connectionString
+      # JWT_SECRET gerado automaticamente pelo Render (forte, >32 chars).
       - key: JWT_SECRET
-        sync: false
+        generateValue: true
       - key: JWT_EXPIRES_IN
-        sync: false
-      - key: OPS_REQUEST_LOG
-        sync: false
-      - key: EXPOSE_API_DOCS
-        sync: false
+        value: 8h
+      # CORS: troque pela(s) URL(s) do seu front (Netlify / domínio próprio),
+      # separadas por vírgula e SEM barra no final.
+      - key: CORS_ORIGIN
+        value: https://454-frontend.netlify.app
+      # URL pública desta API (para montar links absolutos, ex.: logo).
+      # Preencha após o 1º deploy com a URL final do serviço.
       - key: PUBLIC_API_URL
         sync: false
-      - key: CORS_ORIGIN
-        value: https://seu-site.netlify.app,http://localhost:5173
+      # E-mail (opcional): defina no dashboard se for usar envio de relatório.
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      # Swagger em produção (opcional): defina 1 para expor /api-docs.
+      - key: EXPOSE_API_DOCS
+        sync: false
+      # Log de requisições HTTP (opcional).
+      - key: OPS_REQUEST_LOG
+        sync: false
+      # Chromium do Puppeteer (já instalado na imagem Docker).
       - key: PUPPETEER_EXECUTABLE_PATH
         value: /usr/bin/chromium
       - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
         value: "true"
-    autoDeploy: true
