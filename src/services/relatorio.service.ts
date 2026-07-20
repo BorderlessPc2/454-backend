@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient, Prisma, type RelatorioStatus } from "@prisma/client";
 import type {
   CreateRelatorioDTO,
   UpdateRelatorioDTO,
@@ -13,6 +13,14 @@ import {
   parseHorario,
 } from "../lib/horario-datetime.js";
 import { normalizeHorariosInput } from "../lib/normalize-horario-input.js";
+import {
+  assertTransicaoStatusPermitida,
+  getTransicoesPermitidas,
+  parseRelatorioStatus,
+  RelatorioStatusTransitionError,
+} from "../lib/relatorio-status.js";
+
+export { RelatorioStatusTransitionError };
 
 const MODALIDADES_SERVICO = ["local", "remoto"] as const;
 type ModalidadeServico = (typeof MODALIDADES_SERVICO)[number];
@@ -147,11 +155,19 @@ export class RelatorioService {
         throw new Error("Cliente não pertence à sua unidade");
       }
 
+      if (data.status !== undefined && data.status !== "FINALIZADO") {
+        throw new RelatorioStatusTransitionError(
+          "POST /relatorios cria visita finalizada (status FINALIZADO). " +
+            "Para agendar, use POST /relatorios/agendamento",
+        );
+      }
+
       const relatorioData: Prisma.RelatorioUncheckedCreateInput = {
         clienteId: data.clienteId,
         criadoPorId,
         dataVisita,
         modalidadeServico,
+        status: "FINALIZADO",
       };
 
       if (data.contatoId !== undefined) {
@@ -301,6 +317,16 @@ export class RelatorioService {
       where.impresso = filters.impresso;
     }
 
+    if (filters?.status !== undefined && filters.status.length > 0) {
+      const statuses = filters.status;
+      const onlyStatus = statuses.length === 1 ? statuses[0] : undefined;
+      if (onlyStatus !== undefined) {
+        where.status = onlyStatus;
+      } else {
+        where.status = { in: statuses };
+      }
+    }
+
     if (filters?.dataInicio || filters?.dataFim) {
       where.dataVisita = {};
 
@@ -428,7 +454,7 @@ export class RelatorioService {
           scopedUnidadeId === null
             ? { id }
             : { id, cliente: { unidadeId: scopedUnidadeId } },
-        select: { id: true, criadoPorId: true },
+        select: { id: true, criadoPorId: true, status: true },
       });
 
       if (!existing) {
@@ -441,6 +467,13 @@ export class RelatorioService {
         existing.criadoPorId,
         "atualizar",
       );
+
+      if (existing.status === "CANCELADO") {
+        throw new RelatorioStatusTransitionError(
+          "Relatório cancelado não pode ser editado. " +
+            "Reabra com PATCH /relatorios/:id/status (status AGENDADO)",
+        );
+      }
 
       const updateData: Prisma.RelatorioUncheckedUpdateInput = {};
 
@@ -613,6 +646,92 @@ export class RelatorioService {
           },
         },
       });
+    });
+  }
+
+  /**
+   * Transição explícita de status (AGENDADO ↔ FINALIZADO ↔ CANCELADO).
+   * Não altera conteúdo do relatório — use `update` para isso.
+   */
+  async updateStatus(
+    id: number,
+    statusRaw: unknown,
+    scopedUnidadeId: number | null,
+    requesterRole: string | undefined,
+    requesterUserId: number,
+  ) {
+    const novoStatus = parseRelatorioStatus(statusRaw);
+
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.relatorio.findFirst({
+        where:
+          scopedUnidadeId === null
+            ? { id }
+            : { id, cliente: { unidadeId: scopedUnidadeId } },
+        select: { id: true, criadoPorId: true, status: true },
+      });
+
+      if (!existing) {
+        throw new Error("Relatório não encontrado");
+      }
+
+      this.ensureTecnicoPodeAlterarOuExcluir(
+        requesterRole,
+        requesterUserId,
+        existing.criadoPorId,
+        "atualizar",
+      );
+
+      assertTransicaoStatusPermitida(existing.status, novoStatus);
+
+      await tx.relatorio.update({
+        where: { id },
+        data: { status: novoStatus },
+      });
+
+      await auditLogger(tx, {
+        relatorioId: id,
+        usuarioId: requesterUserId,
+        acao: "UPDATE",
+      });
+
+      const updated = await tx.relatorio.findUnique({
+        where: { id },
+        include: {
+          cliente: true,
+          contato: true,
+          criadoPor: {
+            select: {
+              id: true,
+              nome: true,
+              username: true,
+            },
+          },
+          tecnicos: true,
+          setores: {
+            include: {
+              setor: true,
+            },
+          },
+          horarios: true,
+          checklists: {
+            include: {
+              checklist: true,
+            },
+          },
+        },
+      });
+
+      if (!updated) {
+        throw new Error("Falha ao carregar relatório após mudança de status");
+      }
+
+      return {
+        relatorio: updated,
+        statusAnterior: existing.status as RelatorioStatus,
+        statusAtual: updated.status,
+        transicoesPermitidas: getTransicoesPermitidas(updated.status),
+      };
     });
   }
 

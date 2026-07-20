@@ -47,6 +47,11 @@ router.patch(
   requireNumericIdParam,
   RelatorioCalendarioController.reagendarDataVisita,
 );
+router.patch(
+  "/:id/status",
+  requireNumericIdParam,
+  RelatorioController.updateStatus,
+);
 router.get("/:id", requireNumericIdParam, RelatorioController.findById);
 router.put("/:id", requireNumericIdParam, RelatorioController.update);
 router.delete("/:id", requireNumericIdParam, RelatorioController.delete);

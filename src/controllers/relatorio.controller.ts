@@ -2,6 +2,7 @@ import type { Response } from "express";
 import {
   RelatorioService,
   RelatorioForbiddenError,
+  RelatorioStatusTransitionError,
 } from "../services/relatorio.service.js";
 import {
   RelatorioPdfService,
@@ -24,6 +25,7 @@ import {
   serializeRelatorios,
 } from "../lib/serialize-relatorio.js";
 import { pdfLogoDebug } from "../lib/pdf-logo-debug.js";
+import { parseStatusFilter } from "../lib/relatorio-status.js";
 
 const relatorioService = new RelatorioService(prisma);
 const relatorioPdfService = new RelatorioPdfService();
@@ -48,6 +50,10 @@ export class RelatorioController {
       );
       res.status(201).json(serializeRelatorio(relatorio));
     } catch (error) {
+      if (error instanceof RelatorioStatusTransitionError) {
+        res.status(400).json({ error: error.message });
+        return;
+      }
       res.status(400).json({
         error:
           error instanceof Error ? error.message : "Erro ao criar relatório",
@@ -91,6 +97,19 @@ export class RelatorioController {
         filters.impresso = true;
       } else if (impresso === "false") {
         filters.impresso = false;
+      }
+
+      try {
+        const statusFilter = parseStatusFilter(req.query["status"]);
+        if (statusFilter !== undefined) {
+          filters.status = statusFilter;
+        }
+      } catch (error) {
+        res.status(400).json({
+          error:
+            error instanceof Error ? error.message : "Filtro status inválido",
+        });
+        return;
       }
 
       const relatorios = await relatorioService.findAll(
@@ -199,11 +218,76 @@ export class RelatorioController {
         res.status(403).json({ error: error.message });
         return;
       }
+      if (error instanceof RelatorioStatusTransitionError) {
+        res.status(400).json({ error: error.message });
+        return;
+      }
       res.status(400).json({
         error:
           error instanceof Error
             ? error.message
             : "Erro ao atualizar relatório",
+      });
+    }
+  }
+
+  static async updateStatus(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const scope = resolveScopedUnidadeIdForRequest(req.user);
+      if (!scope.ok) {
+        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        return;
+      }
+      const { scopedUnidadeId } = scope;
+
+      const id = parseInt(req.params["id"] ?? "0", 10);
+      if (Number.isNaN(id) || id <= 0) {
+        res.status(400).json({ error: "ID inválido" });
+        return;
+      }
+
+      const userId = req.user?.id;
+      if (userId === undefined) {
+        res.status(401).json({ error: "Não autenticado" });
+        return;
+      }
+
+      const body = req.body as { status?: unknown };
+      const result = await relatorioService.updateStatus(
+        id,
+        body.status,
+        scopedUnidadeId,
+        req.user?.role,
+        userId,
+      );
+
+      res.json({
+        ...serializeRelatorio(result.relatorio),
+        statusAnterior: result.statusAnterior,
+        statusAtual: result.statusAtual,
+        transicoesPermitidas: result.transicoesPermitidas,
+      });
+    } catch (error) {
+      if (error instanceof RelatorioForbiddenError) {
+        res.status(403).json({ error: error.message });
+        return;
+      }
+      if (error instanceof RelatorioStatusTransitionError) {
+        res.status(400).json({ error: error.message });
+        return;
+      }
+      if (
+        error instanceof Error &&
+        error.message === "Relatório não encontrado"
+      ) {
+        res.status(404).json({ error: error.message });
+        return;
+      }
+      res.status(400).json({
+        error:
+          error instanceof Error
+            ? error.message
+            : "Erro ao atualizar status do relatório",
       });
     }
   }

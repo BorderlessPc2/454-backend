@@ -134,6 +134,11 @@ export interface CreateRelatorioDTO {
   /** Local ou remoto; contrato ativo vem do cadastro do cliente. */
   modalidadeServico: "local" | "remoto";
   observacoes?: string;
+  /**
+   * Opcional. Create de visita concluída usa `FINALIZADO` (default).
+   * Agendamentos devem usar `POST /relatorios/agendamento` (`AGENDADO`).
+   */
+  status?: "FINALIZADO";
   tecnicos: string[];
   setores: Array<{ setorId: number; observacao?: string }>;
   horarios?: Array<{ horaChegada: string; horaSaida: string }>;
@@ -154,12 +159,19 @@ export interface UpdateRelatorioDTO {
   checklists?: Array<{ checklistId: number }>;
 }
 
+/** Body de `PATCH /relatorios/:id/status`. */
+export interface UpdateRelatorioStatusDTO {
+  status: "AGENDADO" | "FINALIZADO" | "CANCELADO";
+}
+
 export interface RelatorioFilters {
   clienteId?: number;
   dataInicio?: string;
   dataFim?: string;
   criadoPorId?: number;
   impresso?: boolean;
+  /** Um ou mais status (`AGENDADO`, `FINALIZADO`, `CANCELADO`). */
+  status?: Array<"AGENDADO" | "FINALIZADO" | "CANCELADO">;
 }
 
 export interface ClienteFilters {
