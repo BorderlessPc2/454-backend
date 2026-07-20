@@ -26,6 +26,7 @@ import {
 } from "../lib/serialize-relatorio.js";
 import { pdfLogoDebug } from "../lib/pdf-logo-debug.js";
 import { parseStatusFilter } from "../lib/relatorio-status.js";
+import { mapRelatorioToCalendarioEvent } from "../services/relatorio-calendario.service.js";
 
 const relatorioService = new RelatorioService(prisma);
 const relatorioPdfService = new RelatorioPdfService();
@@ -263,6 +264,7 @@ export class RelatorioController {
 
       res.json({
         ...serializeRelatorio(result.relatorio),
+        evento: mapRelatorioToCalendarioEvent(result.relatorio),
         statusAnterior: result.statusAnterior,
         statusAtual: result.statusAtual,
         transicoesPermitidas: result.transicoesPermitidas,

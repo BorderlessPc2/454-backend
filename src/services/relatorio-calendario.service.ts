@@ -38,6 +38,16 @@ export class RelatorioCalendarioStatusError extends Error {
   }
 }
 
+function resolveCalendarioEventClassNames(
+  status: RelatorioCalendarioRow["status"],
+): string[] {
+  const classNames = [`status-${status.toLowerCase()}`];
+  if (status === "CANCELADO") {
+    classNames.push("event-cancelado");
+  }
+  return classNames;
+}
+
 export function mapRelatorioToCalendarioEvent(
   relatorio: RelatorioCalendarioRow,
 ): CalendarioEvent {
@@ -51,6 +61,8 @@ export function mapRelatorioToCalendarioEvent(
     title: `Visita - ${relatorio.cliente.nomeFantasia}`,
     start: formatDateTimeWallClock(start),
     end: formatDateTimeWallClock(end),
+    status: relatorio.status,
+    classNames: resolveCalendarioEventClassNames(relatorio.status),
     extendedProps: {
       clienteId: relatorio.cliente.id,
       clienteNome: relatorio.cliente.nomeFantasia,

@@ -475,6 +475,12 @@ export class RelatorioService {
         );
       }
 
+      if ((data as { status?: unknown }).status !== undefined) {
+        throw new RelatorioStatusTransitionError(
+          "Alteração de status deve usar PATCH /relatorios/:id/status",
+        );
+      }
+
       const updateData: Prisma.RelatorioUncheckedUpdateInput = {};
 
       if (data.clienteId !== undefined) {

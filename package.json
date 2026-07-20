@@ -17,7 +17,7 @@
     "postinstall": "prisma generate",
     "verify-login": "node scripts/verify-login-credentials.mjs",
     "db:migrate-status": "prisma migrate status",
-    "test": "tsx test/sanitize-rich-text.test.ts && tsx test/extract-auth-token.test.ts && tsx test/modalidade-local-remoto.test.ts && tsx test/relatorio-status.test.ts"
+    "test": "tsx test/sanitize-rich-text.test.ts && tsx test/extract-auth-token.test.ts && tsx test/modalidade-local-remoto.test.ts && tsx test/relatorio-status.test.ts && tsx test/relatorio-calendario-event.test.ts"
   },
   "keywords": [],
   "author": "",

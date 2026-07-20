@@ -39,12 +39,25 @@ Resposta (além do relatório serializado):
 
 ```json
 {
-  "status": "FINALIZADO",
+  "status": "CANCELADO",
   "statusAnterior": "AGENDADO",
-  "statusAtual": "FINALIZADO",
-  "transicoesPermitidas": ["CANCELADO", "AGENDADO"]
+  "statusAtual": "CANCELADO",
+  "transicoesPermitidas": ["AGENDADO"],
+  "evento": {
+    "id": "42",
+    "title": "Visita - Cliente X",
+    "start": "2026-07-21T08:00:00",
+    "end": "2026-07-21T09:00:00",
+    "status": "CANCELADO",
+    "classNames": ["status-cancelado", "event-cancelado"],
+    "extendedProps": {
+      "status": "CANCELADO"
+    }
+  }
 }
 ```
+
+Use o campo `evento` para atualizar o item no calendário sem refetch completo (mesmo contrato de `PATCH /relatorios/:id/data-visita`).
 
 Erros comuns (400):
 
@@ -80,7 +93,7 @@ GET /relatorios?status=AGENDADO&status=FINALIZADO
    - Em **CANCELADO**: só **Reabrir** (`AGENDADO`); desabilitar edição de conteúdo.
 3. Chamar `PATCH /relatorios/:id/status` (não misturar `status` no `PUT`).
 4. Na listagem, filtro por status (chips ou select).
-5. Calendário: manter destaque de `AGENDADO`; eventos `CANCELADO` podem ficar cinza/riscados ou ocultos.
+5. Calendário: usar `evento.status` (ou `evento.extendedProps.status`) retornado pelo `PATCH /status` para atualizar o evento na agenda; eventos `CANCELADO` podem ficar cinza/riscados via `evento.classNames`.
 
 ## Critérios de aceite
 

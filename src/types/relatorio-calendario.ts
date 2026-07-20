@@ -23,6 +23,10 @@ export interface CalendarioEvent {
   title: string;
   start: string;
   end: string;
+  /** Espelho de `extendedProps.status` — facilita atualização do calendário no front. */
+  status: RelatorioStatus;
+  /** Classes CSS sugeridas (FullCalendar `classNames`). */
+  classNames: string[];
   extendedProps: CalendarioEventExtendedProps;
 }
 
