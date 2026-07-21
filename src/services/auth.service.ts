@@ -65,25 +65,31 @@ export class AuthService {
   private async resolveUnidadeIdForTecnicoOnCreate(
     data: CreateUserDTO,
   ): Promise<number> {
-    if (data.clienteId === undefined) {
-      throw new Error("Técnico deve estar vinculado a um cliente");
+    if (data.clienteId !== undefined) {
+      const fromCliente = await this.resolveUnidadeIdFromCliente(
+        data.clienteId,
+      );
+      if (fromCliente == null) {
+        throw new Error("Cliente não encontrado");
+      }
+      if (
+        data.unidadeId !== undefined &&
+        data.unidadeId !== fromCliente
+      ) {
+        throw new Error(
+          "unidadeId informado não corresponde à unidade do cliente",
+        );
+      }
+      return fromCliente;
     }
 
-    const fromCliente = await this.resolveUnidadeIdFromCliente(
-      data.clienteId,
+    if (data.unidadeId !== undefined) {
+      return data.unidadeId;
+    }
+
+    throw new Error(
+      "Técnico deve estar vinculado a um cliente ou a uma unidade",
     );
-    if (fromCliente == null) {
-      throw new Error("Cliente não encontrado");
-    }
-    if (
-      data.unidadeId !== undefined &&
-      data.unidadeId !== fromCliente
-    ) {
-      throw new Error(
-        "unidadeId informado não corresponde à unidade do cliente",
-      );
-    }
-    return fromCliente;
   }
 
   async login(data: LoginDTO): Promise<{
@@ -346,10 +352,12 @@ export class AuthService {
     const nextRole = data.role ?? existing.role;
     const nextClienteId =
       data.clienteId !== undefined ? data.clienteId : existing.clienteId;
+    const resolvedUnidadeId =
+      nextUnidadeId !== undefined ? nextUnidadeId : existing.unidadeId;
 
-    if (nextRole === "TECNICO" && nextClienteId == null) {
+    if (nextRole === "TECNICO" && nextClienteId == null && resolvedUnidadeId == null) {
       throw new Error(
-        "Técnico deve estar vinculado a um cliente",
+        "Técnico deve estar vinculado a um cliente ou a uma unidade",
       );
     }
 
