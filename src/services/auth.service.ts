@@ -40,9 +40,9 @@ export class AuthService {
   constructor(private prisma: PrismaClient) {}
 
   private async resolveUnidadeIdFromCliente(
-    clienteId: number | undefined,
+    clienteId: number | undefined | null,
   ): Promise<number | null> {
-    if (clienteId === undefined) {
+    if (clienteId == null) {
       return null;
     }
 
@@ -59,13 +59,13 @@ export class AuthService {
   }
 
   /**
-   * TECNICO: unidade via cliente OU unidadeId explícito (obrigatório um dos dois).
-   * Se ambos forem enviados, devem ser coerentes.
+   * Unidade vem do cliente quando houver vínculo.
+   * Sem cliente, unidadeId fica null (aceita unidadeId explícito só por compatibilidade de API).
    */
-  private async resolveUnidadeIdForTecnicoOnCreate(
+  private async resolveUnidadeIdOnCreate(
     data: CreateUserDTO,
-  ): Promise<number> {
-    if (data.clienteId !== undefined) {
+  ): Promise<number | null> {
+    if (data.clienteId !== undefined && data.clienteId !== null) {
       const fromCliente = await this.resolveUnidadeIdFromCliente(
         data.clienteId,
       );
@@ -87,9 +87,7 @@ export class AuthService {
       return data.unidadeId;
     }
 
-    throw new Error(
-      "Técnico deve estar vinculado a um cliente ou a uma unidade",
-    );
+    return null;
   }
 
   async login(data: LoginDTO): Promise<{
@@ -224,14 +222,11 @@ export class AuthService {
       role: data.role,
     };
 
-    if (data.clienteId !== undefined) {
+    if (data.clienteId !== undefined && data.clienteId !== null) {
       userData.clienteId = data.clienteId;
     }
 
-    userData.unidadeId =
-      data.role === "TECNICO"
-        ? await this.resolveUnidadeIdForTecnicoOnCreate(data)
-        : await this.resolveUnidadeIdFromCliente(data.clienteId);
+    userData.unidadeId = await this.resolveUnidadeIdOnCreate(data);
 
     return this.prisma.user.create({
       data: userData,
@@ -325,7 +320,7 @@ export class AuthService {
   async updateUser(id: number, data: UpdateUserDTO) {
     const existing = await this.prisma.user.findUnique({
       where: { id },
-      select: { id: true, role: true, clienteId: true, unidadeId: true },
+      select: { id: true },
     });
 
     if (!existing) {
@@ -349,21 +344,8 @@ export class AuthService {
       ...(nextUnidadeId !== undefined ? { unidadeId: nextUnidadeId } : {}),
     };
 
-    const nextRole = data.role ?? existing.role;
-    const nextClienteId =
-      data.clienteId !== undefined ? data.clienteId : existing.clienteId;
-    const resolvedUnidadeId =
-      nextUnidadeId !== undefined ? nextUnidadeId : existing.unidadeId;
-
-    if (nextRole === "TECNICO" && nextClienteId == null && resolvedUnidadeId == null) {
-      throw new Error(
-        "Técnico deve estar vinculado a um cliente ou a uma unidade",
-      );
-    }
-
     if (
-      nextRole === "TECNICO" &&
-      data.clienteId !== undefined &&
+      data.clienteId != null &&
       data.unidadeId !== undefined &&
       nextUnidadeId !== undefined &&
       data.unidadeId !== nextUnidadeId

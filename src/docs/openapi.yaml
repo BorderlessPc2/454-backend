@@ -103,11 +103,14 @@ components:
         nome: { type: string }
         email: { type: string, format: email }
         role: { type: string, enum: [ADMIN, TECNICO] }
-        clienteId: { type: integer, nullable: true }
+        clienteId:
+          type: integer
+          nullable: true
+          description: Opcional. Se informado, a unidade do usuário é derivada do cliente.
         unidadeId:
           type: integer
           description: >
-            Obrigatório para TECNICO quando clienteId não for enviado.
+            Opcional (legado). Preferir vincular apenas via clienteId.
             Se clienteId e unidadeId forem enviados, devem coincidir com a unidade do cliente.
 
     UpdateUserRequest:
@@ -116,12 +119,16 @@ components:
         nome: { type: string }
         email: { type: string, format: email }
         role: { type: string, enum: [ADMIN, TECNICO] }
-        clienteId: { type: integer, nullable: true }
+        clienteId:
+          type: integer
+          nullable: true
+          description: null remove o vínculo com cliente.
         unidadeId:
           type: integer
+          nullable: true
           description: >
-            Altera a unidade do usuário quando clienteId não é enviado no mesmo request.
-            TECNICO deve permanecer com unidade vinculada.
+            Opcional (legado). Preferir vincular via clienteId.
+            Quando clienteId é enviado, a unidade é derivada do cliente.
         ativo: { type: boolean }
 
     ChangePasswordRequest:

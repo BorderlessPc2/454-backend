@@ -10,8 +10,9 @@ export interface CreateUserDTO {
   nome: string;
   email: string;
   role: "ADMIN" | "TECNICO";
-  clienteId?: number;
-  /** Obrigatório para role TECNICO quando não houver clienteId — identifica a unidade do técnico. */
+  /** Opcional — se informado, a unidade do usuário é derivada do cliente. */
+  clienteId?: number | null;
+  /** Opcional (legado). Preferir vincular via clienteId. */
   unidadeId?: number;
 }
 
@@ -19,9 +20,10 @@ export interface UpdateUserDTO {
   nome?: string;
   email?: string;
   role?: "ADMIN" | "TECNICO";
-  clienteId?: number;
-  /** Quando não se altera clienteId, permite ajustar a unidade do técnico diretamente. */
-  unidadeId?: number;
+  /** null remove o vínculo com cliente (e zera a unidade derivada). */
+  clienteId?: number | null;
+  /** Opcional (legado). Preferir vincular via clienteId. */
+  unidadeId?: number | null;
   ativo?: boolean;
 }
 
