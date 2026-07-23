@@ -19,10 +19,13 @@ tags:
   - name: Users
   - name: Clientes
   - name: Relatórios
+  - name: Calendário
   - name: Checklists
   - name: Setores
   - name: Ramos
   - name: Configurações
+  - name: Dashboard
+  - name: Admin
 
 components:
   securitySchemes:
@@ -106,12 +109,12 @@ components:
         clienteId:
           type: integer
           nullable: true
-          description: Opcional. Se informado, a unidade do usuário é derivada do cliente.
+          description: Opcional. Vínculo com cliente (não define unidade).
         unidadeId:
           type: integer
           description: >
-            Opcional (legado). Preferir vincular apenas via clienteId.
-            Se clienteId e unidadeId forem enviados, devem coincidir com a unidade do cliente.
+            Opcional/legado. Cliente não possui unidade — este campo não é
+            derivado de clienteId.
 
     UpdateUserRequest:
       type: object
@@ -126,9 +129,7 @@ components:
         unidadeId:
           type: integer
           nullable: true
-          description: >
-            Opcional (legado). Preferir vincular via clienteId.
-            Quando clienteId é enviado, a unidade é derivada do cliente.
+          description: Opcional/legado. Não derivado do cliente.
         ativo: { type: boolean }
 
     ChangePasswordRequest:
@@ -420,8 +421,8 @@ components:
     ConfiguracaoUpsertRequest:
       type: object
       description: >
-        Envie dataInicio+dataFim (juntos), e/ou textoRodapeRelatorio.
-        Pode atualizar só o rodapé sem reenviar horário, e vice-versa.
+        Envie dataInicio+dataFim (juntos), e/ou textoRodapeRelatorio, logoUrl,
+        logoDarkUrl e/ou themePalette. Pode atualizar só um bloco sem reenviar os demais.
       properties:
         dataInicio:
           type: string
@@ -430,22 +431,100 @@ components:
         dataFim:
           type: string
           format: date-time
+        horaInicio: { type: string, example: "08:00" }
+        horaFim: { type: string, example: "18:00" }
         textoRodapeRelatorio:
           type: string
           nullable: true
           description: Texto/HTML do rodapé usado na impressão ou PDF do relatório (aba Administração).
+        logoUrl:
+          type: string
+          nullable: true
+          description: Path `/uploads/...`, URL absoluta ou `null` para limpar a logo clara.
+        logoDarkUrl:
+          type: string
+          nullable: true
+          description: Path `/uploads/...`, URL absoluta ou `null` para limpar a logo dark.
+        themePalette:
+          type: object
+          nullable: true
+          additionalProperties: true
 
     ConfiguracaoRecord:
       type: object
       properties:
-        id: { type: integer }
+        id: { type: integer, nullable: true }
         dataInicio: { type: string, format: date-time }
         dataFim: { type: string, format: date-time }
         textoRodapeRelatorio:
           type: string
           nullable: true
+        logoUrl:
+          type: string
+          nullable: true
+          description: URL pública da logo clara (light). Inclui `?v=` com cache-bust.
+        logoDarkUrl:
+          type: string
+          nullable: true
+          description: URL pública da logo escura (dark mode). Arquivo distinto (`system-logo-dark.*`).
+        themePalette:
+          type: object
+          nullable: true
+          additionalProperties: true
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+
+
+    CreateCalendarioEventoRequest:
+      type: object
+      required: [titulo, dataInicio, dataFim]
+      properties:
+        titulo: { type: string, maxLength: 200 }
+        descricao: { type: string, nullable: true }
+        dataInicio:
+          type: string
+          format: date
+          description: YYYY-MM-DD inclusivo
+        dataFim:
+          type: string
+          format: date
+          description: YYYY-MM-DD inclusivo (pode igualar dataInicio)
+        clienteId: { type: integer, nullable: true }
+
+    UpdateCalendarioEventoRequest:
+      type: object
+      properties:
+        titulo: { type: string, maxLength: 200 }
+        descricao: { type: string, nullable: true }
+        dataInicio: { type: string, format: date }
+        dataFim: { type: string, format: date }
+        clienteId: { type: integer, nullable: true }
+
+    CalendarioEvento:
+      type: object
+      description: >
+        Formato FullCalendar. allDay=true; end é exclusivo (dataFim+1).
+        Datas inclusivas em extendedProps.dataInicio/dataFim.
+      properties:
+        id: { type: string }
+        title: { type: string }
+        start: { type: string, format: date }
+        end: { type: string, format: date, description: Exclusivo para FullCalendar }
+        allDay: { type: boolean, enum: [true] }
+        classNames:
+          type: array
+          items: { type: string }
+        extendedProps:
+          type: object
+          properties:
+            dataInicio: { type: string, format: date }
+            dataFim: { type: string, format: date }
+            descricao: { type: string, nullable: true }
+            clienteId: { type: integer, nullable: true }
+            clienteNome: { type: string, nullable: true }
+            criadoPorId: { type: integer }
+            criadoPorNome: { type: string }
+
 
 paths:
   /health:
@@ -689,7 +768,7 @@ paths:
       tags: [Clientes]
       summary: Listar clientes
       description: |
-        Isolado por organização: retorna apenas clientes da `unidadeId` do token JWT.
+        Lista todos os clientes (sem filtro por unidade — clientes não possuem `unidadeId`).
         Filtros opcionais (query): `nomeFantasia`, `cnpj`, `ramoAtividadeId` (número).
       security:
         - bearerAuth: []
@@ -864,9 +943,11 @@ paths:
       tags: [Relatórios]
       summary: Listar relatórios
       description: |
-        Isolado por organização: retorna apenas relatórios cuja empresa (`cliente`) pertence à `unidadeId` do token JWT.
+        Lista relatórios. Clientes não possuem mais `unidadeId` — não há isolamento
+        por organização via cliente.
         Filtros opcionais: `clienteId`, `dataInicio`, `dataFim`, `impresso` (`true`/`false`).
-        O filtro `criadoPorId` aplica-se somente quando o usuário é **ADMIN** (técnicos da mesma unidade veem todos os relatórios da unidade).
+        O filtro `criadoPorId` aplica-se somente quando o usuário é **ADMIN**
+        (técnicos veem todos os relatórios; edição/exclusão seguem regras do service).
       security:
         - bearerAuth: []
       parameters:
@@ -1334,3 +1415,211 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorMessage"
         "403": { description: Acesso negado }
+
+  /configuracoes/logo:
+    post:
+      tags: [Configurações]
+      summary: Upload da logo clara (light)
+      description: >
+        Somente ADMIN. Multipart field `logo` (ou o field configurado no middleware).
+        Grava `system-logo.{ext}` sem alterar a logo dark.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [logo]
+              properties:
+                logo:
+                  type: string
+                  format: binary
+                themePalette:
+                  type: string
+                  description: JSON string opcional da paleta
+      responses:
+        "200":
+          description: Configuração atualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConfiguracaoRecord"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "403": { description: Acesso negado }
+
+  /configuracoes/logo-dark:
+    post:
+      tags: [Configurações]
+      summary: Upload da logo escura (dark mode)
+      description: >
+        Somente ADMIN. Multipart field `logo`.
+        Grava `system-logo-dark.{ext}` sem alterar a logo clara.
+        Retorna `logoDarkUrl` apontando para esse arquivo.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [logo]
+              properties:
+                logo:
+                  type: string
+                  format: binary
+                themePalette:
+                  type: string
+                  description: JSON string opcional da paleta
+      responses:
+        "200":
+          description: Configuração atualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConfiguracaoRecord"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "403": { description: Acesso negado }
+
+  /calendario/eventos:
+    get:
+      tags: [Calendário]
+      summary: Listar eventos de organização
+      description: >
+        Independente de relatório. Overlap com o range da query.
+        Datas inclusivas YYYY-MM-DD.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: dataInicio
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: dataFim
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: clienteId
+          in: query
+          schema: { type: integer }
+        - name: criadoPorId
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Lista FullCalendar
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CalendarioEvento"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    post:
+      tags: [Calendário]
+      summary: Criar evento (não cria relatório)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCalendarioEventoRequest"
+      responses:
+        "201":
+          description: Criado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalendarioEvento"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+
+  /calendario/eventos/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer }
+    get:
+      tags: [Calendário]
+      summary: Buscar evento
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalendarioEvento"
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    put:
+      tags: [Calendário]
+      summary: Atualizar evento
+      description: Autor ou ADMIN.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCalendarioEventoRequest"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalendarioEvento"
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    delete:
+      tags: [Calendário]
+      summary: Excluir evento
+      description: Autor ou ADMIN.
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Removido
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+

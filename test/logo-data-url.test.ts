@@ -21,9 +21,13 @@ assert.equal(parseLogoDataUrl("data:image/png;base64,"), null);
 const mockPrisma = {
   configuracao: {
     findFirst: async () => ({
+      id: 1,
       logoUrl: "/uploads/system-logo.png",
       logoDataUrl: tinyPngDataUrl,
+      logoDarkUrl: null,
+      logoDarkDataUrl: null,
     }),
+    update: async () => undefined,
   },
 };
 

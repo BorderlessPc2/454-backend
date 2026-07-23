@@ -19,7 +19,7 @@ import type {
 } from "../types/relatorio-calendario.js";
 
 const RELATORIO_CALENDARIO_INCLUDE = {
-  cliente: { select: { id: true, nomeFantasia: true, unidadeId: true } },
+  cliente: { select: { id: true, nomeFantasia: true } },
   tecnicos: { select: { nome: true } },
   horarios: {
     select: { horaChegada: true, horaSaida: true },
@@ -93,10 +93,6 @@ export class RelatorioCalendarioService {
       dataVisita: { gte: inicio, lte: fim },
     };
 
-    if (filters.scopedUnidadeId !== null) {
-      where.cliente = { unidadeId: filters.scopedUnidadeId };
-    }
-
     if (filters.clienteId !== undefined) {
       where.clienteId = filters.clienteId;
     }
@@ -152,9 +148,7 @@ export class RelatorioCalendarioService {
     return this.prisma.$transaction(async (tx) => {
       const existing = await tx.relatorio.findFirst({
         where:
-          scopedUnidadeId === null
-            ? { id }
-            : { id, cliente: { unidadeId: scopedUnidadeId } },
+          { id },
         include: { horarios: { orderBy: { horaChegada: "asc" } } },
       });
 
@@ -267,14 +261,12 @@ export class RelatorioCalendarioService {
     return this.prisma.$transaction(async (tx) => {
       const cliente = await tx.cliente.findFirst({
         where:
-          scopedUnidadeId === null
-            ? { id: data.clienteId }
-            : { id: data.clienteId, unidadeId: scopedUnidadeId },
+          { id: data.clienteId },
         select: { id: true },
       });
 
       if (!cliente) {
-        throw new Error("Cliente não pertence à sua unidade");
+        throw new Error("Cliente não encontrado");
       }
 
       const relatorio = await tx.relatorio.create({

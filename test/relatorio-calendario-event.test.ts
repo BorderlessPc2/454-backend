@@ -7,7 +7,7 @@ const baseRelatorio = {
   modalidadeServico: "local",
   impresso: false,
   criadoPorId: 1,
-  cliente: { id: 10, nomeFantasia: "Visita", unidadeId: 1 },
+  cliente: { id: 10, nomeFantasia: "Visita" },
   tecnicos: [{ nome: "João" }],
   horarios: [
     {

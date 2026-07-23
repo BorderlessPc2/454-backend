@@ -409,6 +409,7 @@ export class ConfiguracaoService {
       file.buffer,
       file.originalname,
       file.mimetype,
+      "light",
     );
     const logoDataUrl = buildLogoDataUrl(
       file.buffer,
@@ -426,6 +427,7 @@ export class ConfiguracaoService {
       file.buffer,
       file.originalname,
       file.mimetype,
+      "dark",
     );
     const logoDarkDataUrl = buildLogoDataUrl(
       file.buffer,

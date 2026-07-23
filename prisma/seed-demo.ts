@@ -80,7 +80,6 @@ async function main(): Promise<void> {
       nome: "João Silva",
       email: "joao@demo.local",
       role: "TECNICO",
-      unidadeId: 1,
     },
   });
 
@@ -91,7 +90,6 @@ async function main(): Promise<void> {
       nome: "Maria Santos",
       email: "maria@demo.local",
       role: "TECNICO",
-      unidadeId: 2,
     },
   });
 
@@ -183,10 +181,9 @@ async function main(): Promise<void> {
 
   console.log("Checklists: 3 com itens");
 
-  // --- Clientes (3) — 2 na unidade 1, 1 na unidade 2 ---
+  // --- Clientes (3) ---
   const clienteTech = await prisma.cliente.create({
     data: {
-      unidadeId: 1,
       razaoSocial: "TechSolutions Sistemas LTDA",
       nomeFantasia: "TechSolutions",
       cnpj: "11.111.111/0001-11",
@@ -202,7 +199,6 @@ async function main(): Promise<void> {
 
   const clienteMercado = await prisma.cliente.create({
     data: {
-      unidadeId: 1,
       razaoSocial: "Mercado do Povo LTDA",
       nomeFantasia: "Mercado do Povo",
       cnpj: "22.222.222/0001-22",
@@ -218,7 +214,6 @@ async function main(): Promise<void> {
 
   const clienteNorte = await prisma.cliente.create({
     data: {
-      unidadeId: 2,
       razaoSocial: "Indústria Norte SA",
       nomeFantasia: "Indústria Norte",
       cnpj: "33.333.333/0001-33",

@@ -3,18 +3,17 @@ import {
   RelatorioCalendarioService,
   RelatorioCalendarioStatusError,
 } from "../services/relatorio-calendario.service.js";
+import { CalendarioEventoService } from "../services/calendario-evento.service.js";
 import { RelatorioForbiddenError } from "../services/relatorio.service.js";
 import { prisma } from "../lib/prisma.js";
 import type { AuthRequest } from "../middlewares/auth.middleware.js";
 import { resolveScopedUnidadeIdForRequest } from "../lib/scoped-unidade.js";
 import { serializeRelatorio } from "../lib/serialize-relatorio.js";
-import type {
-  CalendarioFilters,
-  CreateAgendamentoDTO,
-  ReagendarDataVisitaDTO,
-} from "../types/relatorio-calendario.js";
+import type { CalendarioEventoFilters } from "../types/calendario-evento.js";
+import type { ReagendarDataVisitaDTO } from "../types/relatorio-calendario.js";
 
 const calendarioService = new RelatorioCalendarioService(prisma);
+const calendarioEventoService = new CalendarioEventoService(prisma);
 
 function parsePositiveInt(value: unknown): number | undefined {
   if (typeof value !== "string" || value.trim() === "") {
@@ -27,10 +26,7 @@ function parsePositiveInt(value: unknown): number | undefined {
   return parsed;
 }
 
-function parseDateParam(
-  value: unknown,
-  fieldName: string,
-): string | null {
+function parseDateParam(value: unknown): string | null {
   if (typeof value !== "string" || value.trim() === "") {
     return null;
   }
@@ -42,16 +38,19 @@ function parseDateParam(
 }
 
 export class RelatorioCalendarioController {
+  /**
+   * @deprecated Preferir `GET /calendario/eventos`.
+   * Mantido como alias — lista eventos de organização (não relatórios).
+   */
   static async listCalendario(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const scope = resolveScopedUnidadeIdForRequest(req.user);
-      if (!scope.ok) {
-        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+      if (!req.user) {
+        res.status(401).json({ error: "Não autenticado" });
         return;
       }
 
-      const dataInicio = parseDateParam(req.query["dataInicio"], "dataInicio");
-      const dataFim = parseDateParam(req.query["dataFim"], "dataFim");
+      const dataInicio = parseDateParam(req.query["dataInicio"]);
+      const dataFim = parseDateParam(req.query["dataFim"]);
 
       if (!dataInicio) {
         res.status(400).json({
@@ -67,38 +66,22 @@ export class RelatorioCalendarioController {
       }
 
       const clienteId = parsePositiveInt(req.query["clienteId"]);
-      const tecnicoId = parsePositiveInt(req.query["tecnicoId"]);
-
       if (clienteId === undefined && req.query["clienteId"] !== undefined) {
         res.status(400).json({ error: "clienteId inválido" });
         return;
       }
-      if (tecnicoId === undefined && req.query["tecnicoId"] !== undefined) {
-        res.status(400).json({ error: "tecnicoId inválido" });
-        return;
-      }
 
-      const filters: CalendarioFilters = {
-        dataInicio,
-        dataFim,
-        scopedUnidadeId: scope.scopedUnidadeId,
-      };
+      const filters: CalendarioEventoFilters = { dataInicio, dataFim };
+      if (clienteId !== undefined) filters.clienteId = clienteId;
 
-      if (clienteId !== undefined) {
-        filters.clienteId = clienteId;
-      }
-      if (tecnicoId !== undefined) {
-        filters.tecnicoId = tecnicoId;
-      }
-
-      const eventos = await calendarioService.listCalendarioEvents(filters);
+      const eventos = await calendarioEventoService.list(filters);
       res.json(eventos);
     } catch (error) {
       res.status(400).json({
         error:
           error instanceof Error
             ? error.message
-            : "Erro ao listar calendário de relatórios",
+            : "Erro ao listar calendário",
       });
     }
   }
@@ -110,7 +93,7 @@ export class RelatorioCalendarioController {
     try {
       const scope = resolveScopedUnidadeIdForRequest(req.user);
       if (!scope.ok) {
-        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        res.status(401).json({ error: "Não autenticado" });
         return;
       }
 
@@ -156,7 +139,10 @@ export class RelatorioCalendarioController {
         res.status(400).json({ error: error.message });
         return;
       }
-      if (error instanceof Error && error.message === "Relatório não encontrado") {
+      if (
+        error instanceof Error &&
+        error.message === "Relatório não encontrado"
+      ) {
         res.status(404).json({ error: error.message });
         return;
       }
@@ -169,53 +155,18 @@ export class RelatorioCalendarioController {
     }
   }
 
-  static async createAgendamento(req: AuthRequest, res: Response): Promise<void> {
-    try {
-      const scope = resolveScopedUnidadeIdForRequest(req.user);
-      if (!scope.ok) {
-        res.status(403).json({ error: "Usuário sem unidade vinculada" });
-        return;
-      }
-
-      const criadoPorId = req.user?.id;
-      if (criadoPorId === undefined) {
-        res.status(401).json({ error: "Não autenticado" });
-        return;
-      }
-
-      const data = req.body as CreateAgendamentoDTO;
-
-      if (
-        typeof data.clienteId !== "number" ||
-        !Number.isInteger(data.clienteId) ||
-        data.clienteId < 1
-      ) {
-        res.status(400).json({ error: "clienteId inválido" });
-        return;
-      }
-
-      if (
-        typeof data.dataVisita !== "string" ||
-        data.dataVisita.trim() === ""
-      ) {
-        res.status(400).json({ error: "dataVisita é obrigatória" });
-        return;
-      }
-
-      const relatorio = await calendarioService.createAgendamento(
-        data,
-        criadoPorId,
-        scope.scopedUnidadeId,
-      );
-
-      res.status(201).json(serializeRelatorio(relatorio));
-    } catch (error) {
-      res.status(400).json({
-        error:
-          error instanceof Error
-            ? error.message
-            : "Erro ao criar agendamento",
-      });
-    }
+  /**
+   * @deprecated Calendário não cria mais relatório.
+   * Use `POST /calendario/eventos`.
+   */
+  static async createAgendamento(
+    _req: AuthRequest,
+    res: Response,
+  ): Promise<void> {
+    res.status(410).json({
+      error:
+        "Agendamento via relatório foi descontinuado. O calendário é só para organização da equipe e não cria relatório. Use POST /calendario/eventos com dataInicio e dataFim.",
+      useInstead: "POST /calendario/eventos",
+    });
   }
 }

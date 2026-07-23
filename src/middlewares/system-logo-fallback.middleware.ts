@@ -1,9 +1,8 @@
 import type { NextFunction, Request, Response } from "express";
 import { parseLogoDataUrl } from "../lib/logo-data-url.js";
+import { systemLogoVariantFromFilename } from "../lib/logo-upload.js";
 import { prisma } from "../lib/prisma.js";
 import { isValidLogoDataUrl } from "../lib/resolve-logo-data-url.js";
-
-const SYSTEM_LOGO_PATTERN = /^system-logo\.(png|jpe?g|webp|svg)$/i;
 
 function extractRequestedFilename(req: Request): string | null {
   const rawPath = req.path.split("?")[0] ?? "";
@@ -14,6 +13,7 @@ function extractRequestedFilename(req: Request): string | null {
 /**
  * Fallback após `express.static` em `/uploads`: serve a logo do banco quando
  * o arquivo local não existe (containers efêmeros em produção).
+ * Light → logoDataUrl | Dark → logoDarkDataUrl
  */
 export async function systemLogoFallbackMiddleware(
   req: Request,
@@ -26,22 +26,31 @@ export async function systemLogoFallbackMiddleware(
   }
 
   const filename = extractRequestedFilename(req);
-  if (!filename || !SYSTEM_LOGO_PATTERN.test(filename)) {
+  if (!filename) {
+    res.status(404).end();
+    return;
+  }
+
+  const variant = systemLogoVariantFromFilename(filename);
+  if (!variant) {
     res.status(404).end();
     return;
   }
 
   try {
     const config = await prisma.configuracao.findFirst({
-      select: { logoDataUrl: true },
+      select: { logoDataUrl: true, logoDarkDataUrl: true },
     });
 
-    if (!isValidLogoDataUrl(config?.logoDataUrl)) {
+    const dataUrl =
+      variant === "dark" ? config?.logoDarkDataUrl : config?.logoDataUrl;
+
+    if (!isValidLogoDataUrl(dataUrl)) {
       res.status(404).end();
       return;
     }
 
-    const parsed = parseLogoDataUrl(config.logoDataUrl);
+    const parsed = parseLogoDataUrl(dataUrl);
     if (!parsed) {
       res.status(404).end();
       return;

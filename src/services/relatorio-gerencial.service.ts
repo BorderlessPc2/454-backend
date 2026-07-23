@@ -20,23 +20,17 @@ import type {
 type RelatorioComAgregacao = {
   id: number;
   clienteId: number;
-  cliente: { id: number; nomeFantasia: string; unidadeId: number };
+  cliente: { id: number; nomeFantasia: string };
   horarios: { horaChegada: Date; horaSaida: Date }[];
   setores: { setorId: number }[];
   tecnicos: { nome: string }[];
 };
 
 function resolveClienteWhere(
-  filters: RelatorioGerencialFilters,
+  _filters: RelatorioGerencialFilters,
 ): Prisma.ClienteWhereInput | undefined {
-  const unidadeId =
-    filters.scopedUnidadeId ?? filters.unidadeId ?? undefined;
-
-  if (unidadeId === undefined) {
-    return undefined;
-  }
-
-  return { unidadeId };
+  // Cliente não possui mais unidadeId — filtros por unidade não se aplicam.
+  return undefined;
 }
 
 function buildRelatorioWhere(
@@ -224,7 +218,7 @@ export class RelatorioGerencialService {
         id: true,
         clienteId: true,
         cliente: {
-          select: { id: true, nomeFantasia: true, unidadeId: true },
+          select: { id: true, nomeFantasia: true },
         },
         horarios: {
           select: { horaChegada: true, horaSaida: true },

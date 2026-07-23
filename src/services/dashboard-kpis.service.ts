@@ -25,18 +25,11 @@ type RelatorioAgregacaoRow = {
   tecnicos: { nome: string }[];
 };
 
-function resolveUnidadeId(filters: DashboardKpisFilters): number | undefined {
-  return filters.scopedUnidadeId ?? filters.unidadeId ?? undefined;
-}
-
 function buildClienteWhere(
-  filters: DashboardKpisFilters,
+  _filters: DashboardKpisFilters,
 ): Prisma.ClienteWhereInput | undefined {
-  const unidadeId = resolveUnidadeId(filters);
-  if (unidadeId === undefined) {
-    return undefined;
-  }
-  return { unidadeId };
+  // Cliente não possui mais unidadeId — filtros por unidade não se aplicam.
+  return undefined;
 }
 
 function buildRelatorioWhere(

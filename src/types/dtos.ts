@@ -10,9 +10,9 @@ export interface CreateUserDTO {
   nome: string;
   email: string;
   role: "ADMIN" | "TECNICO";
-  /** Opcional — se informado, a unidade do usuário é derivada do cliente. */
+  /** Opcional — vínculo com cliente (sem efeito sobre unidade). */
   clienteId?: number | null;
-  /** Opcional (legado). Preferir vincular via clienteId. */
+  /** Opcional/legado — não derivar de cliente. */
   unidadeId?: number;
 }
 
@@ -20,9 +20,9 @@ export interface UpdateUserDTO {
   nome?: string;
   email?: string;
   role?: "ADMIN" | "TECNICO";
-  /** null remove o vínculo com cliente (e zera a unidade derivada). */
+  /** null remove o vínculo com cliente. */
   clienteId?: number | null;
-  /** Opcional (legado). Preferir vincular via clienteId. */
+  /** Opcional/legado — não derivar de cliente. */
   unidadeId?: number | null;
   ativo?: boolean;
 }
@@ -60,8 +60,6 @@ export interface CreateClienteDTO {
   telefone?: string;
   email?: string;
   ramoAtividadeId: number;
-  /** Obrigatório quando o usuário é ADMIN (token sem unidade): define a organização do cliente. */
-  unidadeId?: number;
   contato: CreateContatoDTO;
   contrato: CreateContratoDTO;
 }
@@ -138,7 +136,8 @@ export interface CreateRelatorioDTO {
   observacoes?: string;
   /**
    * Opcional. Create de visita concluída usa `FINALIZADO` (default).
-   * Agendamentos devem usar `POST /relatorios/agendamento` (`AGENDADO`).
+   * Status `AGENDADO` legado não deve ser enviado aqui.
+   * Organização da equipe: use `POST /calendario/eventos` (não cria relatório).
    */
   status?: "FINALIZADO";
   tecnicos: string[];

@@ -12,12 +12,15 @@ Regra nova:
 
 | Situação | Comportamento |
 |----------|----------------|
-| Usuário **com** `clienteId` | Backend deriva `unidadeId` automaticamente a partir do cliente |
+| Usuário **com** `clienteId` | Apenas vínculo com o cliente — **não** deriva unidade |
 | Usuário **sem** `clienteId` | `clienteId` e `unidadeId` ficam `null` — permitido para ADMIN e TECNICO |
 | Enviar `unidadeId` no body | Opcional/legado — **não usar no formulário** |
 
+> **Nota (jul/2026):** clientes também **não têm** `unidadeId`. Ver [FRONTEND-CLIENTE-SEM-UNIDADE.md](./FRONTEND-CLIENTE-SEM-UNIDADE.md).
+
 Mensagens antigas que **não existem mais**:
 - `"Técnico deve estar vinculado a um cliente ou a uma unidade"`
+- `"unidadeId informado não corresponde à unidade do cliente"`
 
 Referência backend: `src/services/auth.service.ts`, `CreateUserDTO` / `UpdateUserDTO` em `src/types/dtos.ts`, OpenAPI `CreateUserRequest` / `UpdateUserRequest`.
 

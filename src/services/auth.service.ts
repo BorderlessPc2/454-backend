@@ -39,48 +39,26 @@ async function delayUntilMinimumElapsed(
 export class AuthService {
   constructor(private prisma: PrismaClient) {}
 
-  private async resolveUnidadeIdFromCliente(
-    clienteId: number | undefined | null,
-  ): Promise<number | null> {
-    if (clienteId == null) {
-      return null;
-    }
-
+  private async assertClienteExists(clienteId: number): Promise<void> {
     const cliente = await this.prisma.cliente.findUnique({
       where: { id: clienteId },
-      select: { unidadeId: true },
+      select: { id: true },
     });
 
     if (!cliente) {
       throw new Error("Cliente não encontrado");
     }
-
-    return cliente.unidadeId;
   }
 
   /**
-   * Unidade vem do cliente quando houver vínculo.
-   * Sem cliente, unidadeId fica null (aceita unidadeId explícito só por compatibilidade de API).
+   * Unidade do usuário é independente do cliente (cliente não tem unidade).
+   * `unidadeId` no body permanece opcional/legado.
    */
   private async resolveUnidadeIdOnCreate(
     data: CreateUserDTO,
   ): Promise<number | null> {
     if (data.clienteId !== undefined && data.clienteId !== null) {
-      const fromCliente = await this.resolveUnidadeIdFromCliente(
-        data.clienteId,
-      );
-      if (fromCliente == null) {
-        throw new Error("Cliente não encontrado");
-      }
-      if (
-        data.unidadeId !== undefined &&
-        data.unidadeId !== fromCliente
-      ) {
-        throw new Error(
-          "unidadeId informado não corresponde à unidade do cliente",
-        );
-      }
-      return fromCliente;
+      await this.assertClienteExists(data.clienteId);
     }
 
     if (data.unidadeId !== undefined) {
@@ -330,7 +308,12 @@ export class AuthService {
     let nextUnidadeId: number | null | undefined;
 
     if (data.clienteId !== undefined) {
-      nextUnidadeId = await this.resolveUnidadeIdFromCliente(data.clienteId);
+      if (data.clienteId !== null) {
+        await this.assertClienteExists(data.clienteId);
+      }
+      // Cliente não define unidade — limpa a derivada antiga, salvo unidadeId explícito
+      nextUnidadeId =
+        data.unidadeId !== undefined ? data.unidadeId : null;
     } else if (data.unidadeId !== undefined) {
       nextUnidadeId = data.unidadeId;
     }
@@ -343,17 +326,6 @@ export class AuthService {
       ...(data.ativo !== undefined ? { ativo: data.ativo } : {}),
       ...(nextUnidadeId !== undefined ? { unidadeId: nextUnidadeId } : {}),
     };
-
-    if (
-      data.clienteId != null &&
-      data.unidadeId !== undefined &&
-      nextUnidadeId !== undefined &&
-      data.unidadeId !== nextUnidadeId
-    ) {
-      throw new Error(
-        "unidadeId informado não corresponde à unidade do cliente",
-      );
-    }
 
     return this.prisma.user.update({
       where: { id },

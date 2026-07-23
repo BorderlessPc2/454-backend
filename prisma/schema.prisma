@@ -66,6 +66,7 @@ model User {
   relatorios          Relatorio[]
   auditLogs           AuditLog[]
   systemActivityLogs  SystemActivityLog[]
+  calendarioEventos   CalendarioEvento[]
 
   @@map("users")
 }
@@ -83,7 +84,6 @@ model RamoAtividade {
 
 model Cliente {
   id                Int      @id @default(autoincrement())
-  unidadeId         Int      @map("unidade_id")
   razaoSocial       String   @map("razao_social")
   nomeFantasia      String   @map("nome_fantasia")
   cnpj              String   @unique
@@ -104,6 +104,7 @@ model Cliente {
   contratos     Contrato[]
   relatorios    Relatorio[]
   users         User[]
+  calendarioEventos CalendarioEvento[]
 
   @@map("clientes")
 }
@@ -315,4 +316,29 @@ model Configuracao {
   updatedAt               DateTime @updatedAt
 
   @@map("configuracoes")
+}
+
+/**
+ * Evento de organização da equipe (calendário).
+ * Independente de Relatorio — criar evento NÃO gera relatório.
+ * dataInicio/dataFim são datas inclusivas (mesmo dia = evento de 1 dia).
+ */
+model CalendarioEvento {
+  id          Int      @id @default(autoincrement())
+  titulo      String   @db.VarChar(200)
+  descricao   String?  @db.Text
+  dataInicio  DateTime @map("data_inicio")
+  dataFim     DateTime @map("data_fim")
+  clienteId   Int?     @map("cliente_id")
+  criadoPorId Int      @map("criado_por_id")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  cliente   Cliente? @relation(fields: [clienteId], references: [id], onDelete: SetNull)
+  criadoPor User     @relation(fields: [criadoPorId], references: [id])
+
+  @@index([dataInicio, dataFim])
+  @@index([criadoPorId])
+  @@index([clienteId])
+  @@map("calendario_eventos")
 }

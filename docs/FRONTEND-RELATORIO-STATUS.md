@@ -10,9 +10,12 @@ O backend agora tem workflow explícito de status do relatório:
 
 | Status | Significado |
 |--------|-------------|
-| `AGENDADO` | Visita marcada no calendário (criada via `POST /relatorios/agendamento`) |
+| `AGENDADO` | Status legado de relatório (não use o calendário para criar isso) |
 | `FINALIZADO` | Visita concluída / relatório pronto (default de `POST /relatorios`) |
 | `CANCELADO` | Visita cancelada — **não edita conteúdo** até reabrir |
+
+> **Calendário de organização:** eventos da equipe usam `POST /calendario/eventos` e **não** criam relatório. Ver [FRONTEND-CALENDARIO-EVENTOS.md](./FRONTEND-CALENDARIO-EVENTOS.md).
+> `POST /relatorios/agendamento` retorna **410 Gone**.
 
 ### Transições permitidas
 

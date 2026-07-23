@@ -145,20 +145,18 @@ export class RelatorioService {
 
       const cliente = await tx.cliente.findFirst({
         where:
-          scopedUnidadeId === null
-            ? { id: data.clienteId }
-            : { id: data.clienteId, unidadeId: scopedUnidadeId },
+          { id: data.clienteId },
         select: { id: true },
       });
 
       if (!cliente) {
-        throw new Error("Cliente não pertence à sua unidade");
+        throw new Error("Cliente não encontrado");
       }
 
       if (data.status !== undefined && data.status !== "FINALIZADO") {
         throw new RelatorioStatusTransitionError(
           "POST /relatorios cria visita finalizada (status FINALIZADO). " +
-            "Para agendar, use POST /relatorios/agendamento",
+            "Para organização da equipe no calendário, use POST /calendario/eventos (não cria relatório).",
         );
       }
 
@@ -298,9 +296,6 @@ export class RelatorioService {
     viewerRole?: string,
   ) {
     const where: Prisma.RelatorioWhereInput = {};
-    if (scopedUnidadeId !== null) {
-      where.cliente = { unidadeId: scopedUnidadeId };
-    }
 
     if (filters?.clienteId !== undefined) {
       where.clienteId = filters.clienteId;
@@ -376,9 +371,7 @@ export class RelatorioService {
   async findById(id: number, scopedUnidadeId: number | null) {
     return this.prisma.relatorio.findFirst({
       where:
-        scopedUnidadeId === null
-          ? { id }
-          : { id, cliente: { unidadeId: scopedUnidadeId } },
+        { id },
       include: {
         cliente: true,
         contato: true,
@@ -408,9 +401,7 @@ export class RelatorioService {
   async getRelatorioParaPdf(id: number, scopedUnidadeId: number | null) {
     const relatorio = await this.prisma.relatorio.findFirst({
       where:
-        scopedUnidadeId === null
-          ? { id }
-          : { id, cliente: { unidadeId: scopedUnidadeId } },
+        { id },
       include: RELATORIO_INCLUDE_COMPLETO,
     });
 
@@ -451,9 +442,7 @@ export class RelatorioService {
     return this.prisma.$transaction(async (tx) => {
       const existing = await tx.relatorio.findFirst({
         where:
-          scopedUnidadeId === null
-            ? { id }
-            : { id, cliente: { unidadeId: scopedUnidadeId } },
+          { id },
         select: { id: true, criadoPorId: true, status: true },
       });
 
@@ -486,14 +475,12 @@ export class RelatorioService {
       if (data.clienteId !== undefined) {
         const targetCliente = await tx.cliente.findFirst({
           where:
-            scopedUnidadeId === null
-              ? { id: data.clienteId }
-              : { id: data.clienteId, unidadeId: scopedUnidadeId },
+            { id: data.clienteId },
           select: { id: true },
         });
 
         if (!targetCliente) {
-          throw new Error("Cliente não pertence à sua unidade");
+          throw new Error("Cliente não encontrado");
         }
 
         updateData.clienteId = data.clienteId;
@@ -671,9 +658,7 @@ export class RelatorioService {
     return this.prisma.$transaction(async (tx) => {
       const existing = await tx.relatorio.findFirst({
         where:
-          scopedUnidadeId === null
-            ? { id }
-            : { id, cliente: { unidadeId: scopedUnidadeId } },
+          { id },
         select: { id: true, criadoPorId: true, status: true },
       });
 
@@ -748,9 +733,7 @@ export class RelatorioService {
     requesterUserId: number,
   ) {
     const scopedWhere: Prisma.RelatorioWhereInput =
-      scopedUnidadeId === null
-        ? { id }
-        : { id, cliente: { unidadeId: scopedUnidadeId } };
+      { id };
 
     const registro = await this.prisma.relatorio.findFirst({
       where: scopedWhere,
@@ -787,9 +770,7 @@ export class RelatorioService {
   ) {
     const relatorio = await this.prisma.relatorio.findFirst({
       where:
-        scopedUnidadeId === null
-          ? { id: relatorioId }
-          : { id: relatorioId, cliente: { unidadeId: scopedUnidadeId } },
+        { id: relatorioId },
       select: { id: true },
     });
 

@@ -4,6 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "up": "bash scripts/dev-up.sh",
+    "down": "bash scripts/dev-down.sh",
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json && node scripts/copy-openapi.mjs",
     "build:render": "bash render-build.sh",
@@ -17,7 +19,7 @@
     "postinstall": "prisma generate",
     "verify-login": "node scripts/verify-login-credentials.mjs",
     "db:migrate-status": "prisma migrate status",
-    "test": "tsx test/sanitize-rich-text.test.ts && tsx test/extract-auth-token.test.ts && tsx test/modalidade-local-remoto.test.ts && tsx test/relatorio-status.test.ts && tsx test/relatorio-calendario-event.test.ts"
+    "test": "tsx test/sanitize-rich-text.test.ts && tsx test/extract-auth-token.test.ts && tsx test/modalidade-local-remoto.test.ts && tsx test/relatorio-status.test.ts && tsx test/relatorio-calendario-event.test.ts && tsx test/system-logo-variants.test.ts && tsx test/logo-data-url.test.ts && tsx test/calendario-evento.test.ts"
   },
   "keywords": [],
   "author": "",

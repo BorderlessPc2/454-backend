@@ -18,12 +18,8 @@ type ConfiguracaoRecord = NonNullable<
 
 function serializeConfiguracaoResponse(
   config: ConfiguracaoRecord | null,
-  logoUrl: string | null = config
-    ? resolvePublicLogoUrl(config.logoUrl)
-    : null,
-  logoDarkUrl: string | null = config
-    ? resolvePublicLogoUrl(config.logoDarkUrl)
-    : null,
+  logoUrl?: string | null,
+  logoDarkUrl?: string | null,
 ) {
   const horario = config
     ? serializeConfigHorario(config.dataInicio, config.dataFim)
@@ -43,12 +39,22 @@ function serializeConfiguracaoResponse(
     };
   }
 
+  const cacheBust = config.updatedAt;
+  const resolvedLogoUrl =
+    logoUrl !== undefined
+      ? logoUrl
+      : resolvePublicLogoUrl(config.logoUrl, cacheBust);
+  const resolvedLogoDarkUrl =
+    logoDarkUrl !== undefined
+      ? logoDarkUrl
+      : resolvePublicLogoUrl(config.logoDarkUrl, cacheBust);
+
   return {
     id: config.id,
     ...horario,
     textoRodapeRelatorio: config.textoRodapeRelatorio ?? null,
-    logoUrl,
-    logoDarkUrl,
+    logoUrl: resolvedLogoUrl,
+    logoDarkUrl: resolvedLogoDarkUrl,
     themePalette: parseBrandThemePalette(config.themePalette),
     createdAt: config.createdAt,
     updatedAt: config.updatedAt,
@@ -182,13 +188,7 @@ export class ConfiguracaoController {
       }
 
       const config = await configuracaoService.patch(patch);
-      res.json(
-        serializeConfiguracaoResponse(
-          config,
-          resolvePublicLogoUrl(config.logoUrl),
-          resolvePublicLogoUrl(config.logoDarkUrl),
-        ),
-      );
+      res.json(serializeConfiguracaoResponse(config));
     } catch (error) {
       res.status(400).json({
         error:
@@ -233,13 +233,7 @@ export class ConfiguracaoController {
         themePalette,
       );
 
-      res.json({
-        ...serializeConfiguracaoResponse(
-          config,
-          resolvePublicLogoUrl(config.logoUrl),
-          resolvePublicLogoUrl(config.logoDarkUrl),
-        ),
-      });
+      res.json(serializeConfiguracaoResponse(config));
     } catch (error) {
       res.status(400).json({
         error:
@@ -282,13 +276,7 @@ export class ConfiguracaoController {
         themePalette,
       );
 
-      res.json({
-        ...serializeConfiguracaoResponse(
-          config,
-          resolvePublicLogoUrl(config.logoUrl),
-          resolvePublicLogoUrl(config.logoDarkUrl),
-        ),
-      });
+      res.json(serializeConfiguracaoResponse(config));
     } catch (error) {
       res.status(400).json({
         error:

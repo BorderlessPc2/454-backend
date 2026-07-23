@@ -162,29 +162,28 @@ Para o card **"Próximos Agendamentos"**, use em paralelo:
 
 | Método | Rota |
 |--------|------|
-| `GET` | `/relatorios/calendario` |
+| `GET` | `/calendario/eventos` |
 
-Query params:
-
-- `dataInicio` (obrigatório): hoje em `YYYY-MM-DD`
-- `dataFim` (obrigatório): ex. +30 ou +90 dias
-- `clienteId`, `tecnicoId` (opcionais, ADMIN)
-
-Filtrar no front eventos com `extendedProps.status === "AGENDADO"` e `start >= agora`, ordenar por `start`.
+Query: `dataInicio` e `dataFim` (YYYY-MM-DD) cobrindo “hoje → +30 dias”.
 
 ```ts
-const hoje = toYmd(new Date());
-const em30Dias = toYmd(new Date(Date.now() + 30 * 86400000));
-
 const res = await fetch(
-  `${API_BASE}/relatorios/calendario?dataInicio=${hoje}&dataFim=${em30Dias}`,
+  `${API_BASE}/calendario/eventos?dataInicio=${hoje}&dataFim=${em30Dias}`,
   { headers: { Authorization: `Bearer ${token}` } },
 );
 const eventos = await res.json();
+// title, start, extendedProps — sem status AGENDADO
+```
+
+> **Nota:** `POST /relatorios/agendamento` foi descontinuado (410). Ver [FRONTEND-CALENDARIO-EVENTOS.md](./FRONTEND-CALENDARIO-EVENTOS.md).
+
+Filtros opcionais: `clienteId`, `criadoPorId`.
+
+```ts
+const eventos = await res.json();
 const proximos = eventos
-  .filter((e) => e.extendedProps?.status === "AGENDADO")
-  .filter((e) => new Date(e.start) >= new Date())
-  .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+  .filter((e) => e.start >= hoje)
+  .sort((a, b) => a.start.localeCompare(b.start));
 ```
 
 ---
@@ -347,7 +346,7 @@ Carregar KPIs no **mount** da página (sem filtros = mês corrente até hoje) e 
 - [ ] Omitir filtros em "Todos"
 - [ ] Renderizar UI diferente para ADMIN vs TECNICO
 - [ ] Converter `totalHoras` decimal → `HH:mm` se a UI usar relógio
-- [ ] Card "Próximos Agendamentos": `GET /relatorios/calendario` + filtro `AGENDADO`
+- [ ] Card "Próximos Agendamentos": `GET /calendario/eventos` (sem filtro de status de relatório)
 - [ ] TECNICO: não enviar `unidadeId`, `tecnicoId`, `clienteId`
 - [ ] Tratar listas vazias (`[]`) como estado vazio válido
 - [ ] Exibir `error` do JSON em falhas

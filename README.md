@@ -47,9 +47,50 @@ A especificação fonte está em `src/docs/openapi.yaml` (copiada para `dist/doc
 ## Pré-requisitos
 
 - Node.js 20+ (recomendado: 22 LTS)
-- Docker Desktop (para subir o PostgreSQL local)
+- Docker via **Colima** (ou Docker Desktop) para Postgres e Redis locais
 
-## Instalação
+## Subir tudo de uma vez (recomendado)
+
+```bash
+npm run up
+```
+
+Esse comando:
+
+1. Inicia o **Colima** (ou Docker Desktop) se o daemon estiver parado e espera ficar pronto
+2. Cria `.env` a partir de `.env.example` (se ainda não existir)
+3. Sobe **Postgres** (`localhost:5433`) e **Redis** (`localhost:6380`) via Docker
+4. Instala dependências, gera o Prisma Client e aplica as migrations
+5. Inicia a API em modo watch (`npm run dev`)
+
+Só o daemon Docker (neste Mac via Colima):
+
+```bash
+colima start
+```
+
+Depois:
+
+```bash
+docker compose up -d
+```
+
+
+Com seed (usuário `admin` / `admin123`):
+
+```bash
+npm run up -- --seed
+```
+
+Para parar os containers:
+
+```bash
+npm run down
+```
+
+API: [http://localhost:3000](http://localhost:3000) · Swagger: [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
+
+## Instalação manual
 
 ```bash
 npm install
@@ -69,10 +110,10 @@ No PowerShell (Windows):
 Copy-Item .env.example .env
 ```
 
-2. Configure as variáveis no `.env`:
+2. Configure as variáveis no `.env` (valores padrão do Docker local já estão no `.env.example`):
 
 ```env
-DATABASE_URL="postgresql://linq:linqq608U@localhost:5432/polls?schema=public"
+DATABASE_URL="postgresql://linq:linqq608U@localhost:5433/polls?schema=public"
 JWT_SECRET="sua-chave-secreta-aqui"
 JWT_EXPIRES_IN="8h"
 PORT=3000
@@ -105,6 +146,8 @@ npm run prisma:generate
 ### Desenvolvimento
 
 ```bash
+npm run up
+# ou, se Docker/deps/migrations já estiverem ok:
 npm run dev
 ```
 
@@ -251,6 +294,9 @@ Após rodar as migrations, você pode criar um usuário admin diretamente no ban
 
 ## Scripts Úteis
 
+- **`npm run up`** — sobe Docker (Postgres/Redis), deps, migrations e API
+- **`npm run up -- --seed`** — igual ao `up`, com seed (`admin` / `admin123`)
+- **`npm run down`** — para os containers Docker
 - `npm run dev` - Servidor em modo watch
 - `npm run build` - Build para produção
 - `npm run prisma:generate` - Gerar Prisma Client

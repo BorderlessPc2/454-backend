@@ -37,7 +37,7 @@ export class RelatorioController {
     try {
       const scope = resolveScopedUnidadeIdForRequest(req.user);
       if (!scope.ok) {
-        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        res.status(401).json({ error: "Não autenticado" });
         return;
       }
       const { scopedUnidadeId } = scope;
@@ -66,7 +66,7 @@ export class RelatorioController {
     try {
       const scope = resolveScopedUnidadeIdForRequest(req.user);
       if (!scope.ok) {
-        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        res.status(401).json({ error: "Não autenticado" });
         return;
       }
       const { scopedUnidadeId } = scope;
@@ -132,7 +132,7 @@ export class RelatorioController {
     try {
       const scope = resolveScopedUnidadeIdForRequest(req.user);
       if (!scope.ok) {
-        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        res.status(401).json({ error: "Não autenticado" });
         return;
       }
       const { scopedUnidadeId } = scope;
@@ -164,7 +164,7 @@ export class RelatorioController {
     try {
       const scope = resolveScopedUnidadeIdForRequest(req.user);
       if (!scope.ok) {
-        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        res.status(401).json({ error: "Não autenticado" });
         return;
       }
       const { scopedUnidadeId } = scope;
@@ -190,7 +190,7 @@ export class RelatorioController {
     try {
       const scope = resolveScopedUnidadeIdForRequest(req.user);
       if (!scope.ok) {
-        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        res.status(401).json({ error: "Não autenticado" });
         return;
       }
       const { scopedUnidadeId } = scope;
@@ -236,7 +236,7 @@ export class RelatorioController {
     try {
       const scope = resolveScopedUnidadeIdForRequest(req.user);
       if (!scope.ok) {
-        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        res.status(401).json({ error: "Não autenticado" });
         return;
       }
       const { scopedUnidadeId } = scope;
@@ -298,7 +298,7 @@ export class RelatorioController {
     try {
       const scope = resolveScopedUnidadeIdForRequest(req.user);
       if (!scope.ok) {
-        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        res.status(401).json({ error: "Não autenticado" });
         return;
       }
       const { scopedUnidadeId } = scope;
@@ -332,7 +332,7 @@ export class RelatorioController {
     try {
       const scope = resolveScopedUnidadeIdForRequest(req.user);
       if (!scope.ok) {
-        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        res.status(401).json({ error: "Não autenticado" });
         return;
       }
       const { scopedUnidadeId } = scope;
@@ -382,7 +382,7 @@ export class RelatorioController {
     try {
       const scope = resolveScopedUnidadeIdForRequest(req.user);
       if (!scope.ok) {
-        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        res.status(401).json({ error: "Não autenticado" });
         return;
       }
       const { scopedUnidadeId } = scope;
@@ -459,7 +459,7 @@ export class RelatorioController {
     try {
       const scope = resolveScopedUnidadeIdForRequest(req.user);
       if (!scope.ok) {
-        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        res.status(401).json({ error: "Não autenticado" });
         return;
       }
       const { scopedUnidadeId } = scope;
